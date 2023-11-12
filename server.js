@@ -139,12 +139,15 @@ app.get('/register', checkLogin, function(req, res) {
 // name, nick, gender, familyLocation, phone
 app.post('/register', checkLogin, async (req, res) => {
     let data = await db.collection('user_login').findOne({ _id : new ObjectId(req.user._id) });
-
+    // console.log(data);
+    // console.log(req.user._id);
     if((data)) {
-        await db.collection('user_login').updateOne( {}, { $set: { username : req.body.name, nickname : req.body.nick, gender : req.body.gender, familyLocation : req.body.familyLocation, phone : req.body.phone } });
+        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { username : req.body.name, nickname : req.body.nick, gender : req.body.gender, phone : req.body.phone } });
         res.status(200).send({ message : '성공했습니다!' });
+        // res.redirect('/family/choice');
     } else {
         res.status(400).send({ message : 'ID 중복'});
+        // res.redirect('/register');
     }
 });
 
@@ -177,6 +180,43 @@ function checkLogin(req, res, next) {
 
 // 가족 탭 생성 API ( 신규 생성 )
 
+// test
+app.get('/family/choice', checkLogin, function(req, res) {
+    // res.render('choicefamily.ejs');
+    if(req.user.familyId) {
+        res.redirect('/list');
+    } else {
+        res.render('choicefamily.ejs');
+    }
+});
+
+// test
+app.get('/family/new', checkLogin, async (req, res) => {
+    // console.log(req.user);
+    if(req.user.familyId) {
+        res.redirect('/list');
+    } else {
+        res.render('newfamily.ejs');
+    }
+});
+
+app.post('/family/new', async (req, res) => {
+    // console.log(req.body);
+    // console.log(req.user);
+    let result = await db.collection('family').findOne({ familyName : req.body.familynick });
+    // console.log(result);
+    if(!result) {
+        let result = await db.collection('family').insertOne({ memberCount : 1, familyName : req.body.familynick, member0 : {user : req.user._id, Location : req.body.familyLocation} });
+        // console.log(result);
+        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : result.insertedId } });
+        res.status(200).send({ message : '성공'});
+        // res.redirect('/list')
+    } else {
+        res.status(400).send({ message : '닉네임 중복' });
+        // res.redirect('/register');
+    }
+});
+
 // 불러오기 API ( 아이디가 속한 가족 리스트업 )
 
 // 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 )
@@ -186,6 +226,47 @@ function checkLogin(req, res, next) {
 // 멤버 삭제 API ( 가족 내 개인 삭제 )
 
 // 초대 API ( 기존 가족에서 초대 코드 보내기 )
+
+// 새 가족 생성 or 초대 코드 입력 화면에서 초대 코드 입력받을 때
+app.post('/family/invite/:id', async (req, res) => {
+    let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
+    if(!result) {
+        res.status(400).send({ message : '유효하지 않은 초대코드' });
+    } else {
+        res.status(200).send({ message : '성공'});
+    }
+});
+
+// test
+app.get('/family/new/:id', checkLogin, async (req, res) => {
+    let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
+    if(!result) {
+        res.status(400).send({ message : '유효하지 않은 초대코드' });
+    } else {
+        res.render('invitefamily.ejs', { name : result.familyName });
+    }
+});
+
+// 기존 가족 탭에 새로운 멤버 추가
+app.post('/family/invite', async (req, res) => {
+    // console.log(req.body);
+    // console.log(req.user);
+    let result = await db.collection('family').findOne({ familyName : req.body.familynick });
+    // console.log(result);
+    if(result) {
+        let count = result.memberCount;
+        let value = 'member' + count;
+        let familyId = result._id;
+        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : familyId } });
+        await db.collection('family').updateOne({ familyName : req.body.familynick }, { $set: { [value] : {user : req.user._id, Location : req.body.familyLocation}}});
+        await db.collection('family').updateOne({ familyName : req.body.familynick }, { $inc : {memberCount : 1}});
+        res.status(200).send({ message : '성공'});
+        // res.redirect('/list')
+    } else {
+        res.status(400).send({ message : '닉네임 중복' });
+        // res.redirect('/register');
+    }
+});
 
 // 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
 
@@ -227,7 +308,7 @@ app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
     // console.log(req.file);
     var dateString = WhatTimeNow();
     let count = await db.collection('counter').findOne({ name : 'count_eeho' });
-    console.log('count : ' + count.totalPost);
+    // console.log('count : ' + count.totalPost);
     await db.collection('EEHO').insertOne({ _id : count.totalPost, img : req.file.location, userId : req.user._id, date : dateString });
     await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     // console.log(result);
@@ -261,7 +342,20 @@ function WhatTimeNow() {
 
 // 사진 삭제 API ( 올린 사람에 한하여 삭제 가능 )
 
-
+// delete/'에호넘버' 로 get요청 사용하여 delete 작용.
+// 성공 실패 여부는 url을 통해서 전달.
+app.get('/delete/:id', checkLogin, async (req, res) => {
+    let result = await db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), userId : req.user._id });
+    // console.log(에러.body);
+    // 응답.status(400).send({ message : '삭제 실패'});
+    if(result.deletedCount == 1) {
+        console.log('삭제완료');
+        res.redirect('/list?deleteSuccess=true');
+    } else {
+        console.log(result);
+        res.redirect('/list?deleteSuccess=false');
+    }
+});
 
 // 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 )
 

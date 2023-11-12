@@ -12,27 +12,12 @@
   <h4 class="container mt-4"><strong>회원 가입</strong></h4>
   <!-- 이름, 닉네임, 성별, 가족 내 위치, 전화번호 -->
   <div class="container mt-3">
-    <form id="signup-form" action="/register" method="POST">
+    <form id="signup-form" action="/family/invite" method="POST">
       <div class="form-group">
-        <label>이름</label>
-        <input type="text" class="form-control" name="이름">
+        <label>가족별명</label>
+        <input type="text" class="form-control" value="<%= name %>" name="가족별명" disabled>
       </div>
       <div class="form-group">
-        <label>닉네임</label>
-        <input type="text" class="form-control" name="닉네임">
-      </div>
-      <div class="form-group">
-        <label>성별</label><br>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="성별" id="inlineRadio1" value="Male">
-            <label class="form-check-label" for="inlineRadio1">Male</label>
-        </div>
-        <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="성별" id="inlineRadio2" value="Female">
-            <label class="form-check-label" for="inlineRadio2">Female</label>
-        </div>
-      </div>
-      <!-- <div class="form-group">
         <label>가족 내 위치</label><br>
         <select class="form-select" aria-label="Default select example" name="위치" id="familyLocation">
             <option selected>Open this select menu</option>
@@ -40,13 +25,8 @@
             <option value="모">모</option>
             <option value="자녀">자녀</option>
         </select>
-      </div> -->
-      <div class="form-group">
-        <label>전화번호</label><br>
-        <input type="tel" id="phone" name="전화번호" pattern="[0-9]{11}" required />
-        <small>Format: 1234567890</small>
       </div>
-      <button type="submit" class="btn btn-outline-secondary">Sign up</button>
+      <button type="submit" class="btn btn-outline-secondary">생성</button>
     </form>
   </div>
 
@@ -57,28 +37,23 @@
       $('#signup-form').submit(function(event) {
         event.preventDefault();
 
-        var 이름 = $('input[name="이름"]').val();
-        var 닉네임 = $('input[name="닉네임"]').val();
-        var gender = document.querySelector('input[name="성별"]:checked').value;
-        // var familyLocation = document.getElementById('familyLocation').value;
-        var 전화번호 = $('input[name="전화번호"]').val();
-        console.log(이름, 닉네임, gender, 전화번호);
+        var 이름 = $('input[name="가족별명"]').val();
+        var familyLocation = document.getElementById('familyLocation').value;
+        console.log(이름, familyLocation);
 
         // 이름, 닉네임, 성별, 가족 내 위치, 전화번호
         // 서버에 회원 가입 정보를 전송합니다.
         $.ajax({
           type: 'POST',
-          url: '/register', // 실제 서버 측 스크립트 경로
+          url: '/family/invite', // 실제 서버 측 스크립트 경로
           data: {
-            name: 이름,
-            nick: 닉네임,
-            gender: gender,
-            phone: 전화번호
+            familynick: 이름,
+            familyLocation: familyLocation
           },
           success: function(result) {
             // 성공한 경우 처리
             console.log('성공!');
-            window.location.href = '/family/choice';
+            window.location.href = '/list';
           },
           error: function(xhr, textStatus, errorThrown) {
             console.log('실패');

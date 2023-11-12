@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <script src="https://code.jquery.com/jquery-3.4.1.js"></script>
+  <title>Document</title>
+</head>
+<body>
+
+  <div class="container mt-4 text-center">
+    <a href="/family/new">
+      <img src="/ko/kakao_login_medium_wide.png" class="img-fluid" alt="kakao_login_button">
+    </a>
+  </div>
+
+  <form id="invite-form" action="/family/invite" method="POST">
+    <input type="text" class="form-control" hint="초대코드" name="초대코드">
+    <button type="submit">전송</button>
+  </form>
+  <script>
+
+      $('#invite-form').submit(function(event) {
+        event.preventDefault();
+
+        var 초대코드 = $('input[name="초대코드"]').val();
+        console.log(초대코드);
+        var inviteUrl = '/family/invite/' + 초대코드;
+
+        // 이름, 닉네임, 성별, 가족 내 위치, 전화번호
+        // 서버에 회원 가입 정보를 전송합니다.
+        $.ajax({
+          type: 'POST',
+          url: inviteUrl, // 실제 서버 측 스크립트 경로
+          success: function(result) {
+            // 성공한 경우 처리
+            console.log('성공!');
+            window.location.href = '/family/new/' + 초대코드;
+          },
+          error: function(xhr, textStatus, errorThrown) {
+            console.log('실패');
+            alert('유효하지 않은 초대코드!!!');
+            window.location.reload(true);
+          }
+        });
+      });
+  </script>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+</body>
+</html>
