@@ -166,6 +166,8 @@ app.post('/register', checkLogin, async (req, res) => {
 // test
 app.get('/list', checkLogin, async (req, res) => {
     let result = await db.collection('EEHO').find().toArray();
+    result.code = req.user.familyId;
+    console.log(result);
     res.render('list.ejs', { posts : result });
 });
 

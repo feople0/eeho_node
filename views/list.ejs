@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link href="main.css" rel="stylesheet">
+    <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
 </head>
 <body class="grey-bg">
   <%= posts.length %>
@@ -18,6 +19,31 @@
     </div> 
     <a class="nav-link" href="/logout">Log Out</a>
   
+      <img src="//developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png" onclick="myFunction()" style="cursor: pointer;">
+      <input type="hidden" id="hiddenValue" value=<%= posts.code %>>
+  
+      <script src="/apikey.js" content></script>
+      <script>
+          Kakao.init(apiKey);
+          function myFunction() {
+              var hiddenInputValue = document.getElementById("hiddenValue").value;
+  
+              // 클릭되었을 때 실행할 함수 내용을 여기에 작성
+              Kakao.Share.sendCustom({
+                  templateId: 100618,
+                  templateArgs: {
+                      title: "지금 초대코드를 통해 에호에 참여해보세요",
+                      desc: "templateArgs에서 설정한 값을 템플릿에 ${title} 형태로 입력합니다.",
+                      url: "family/new/" + hiddenInputValue,
+                      THU: "https://developers.kakao.com/static/images/pc/txt_visual1.png"
+  
+                  },
+              });
+  
+              // 또는 원하는 다른 동작을 수행할 수 있습니다.
+          }
+          
+      </script>
   </body>
   
 </html>
