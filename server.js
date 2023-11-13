@@ -228,10 +228,9 @@ app.post('/family/new', async (req, res) => {
 
 // 초대 API ( 기존 가족에서 초대 코드 보내기 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-app.get('/kakao/invite', (req, res) => {
-    let data = { familyId : req.user.familyId, jsCode : process.env.KAKAO_JS_API };
-    console.log(data);
-    res.render('kakaoinvite.ejs', { code : data });
+app.get('/kakao/invite', checkLogin, (req, res) => {
+    
+    res.render('kakaoinvite.ejs', { code : req.user.familyId });
 });
 
 // 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
