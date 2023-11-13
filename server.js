@@ -54,6 +54,7 @@ passport.use('kakao-login', new KakaoStrategy({
             }
         } else { // 로그인
             console.log('카카오 로그인 성공');
+            await db.collection('user_login').updateOne( { id : profile.id }, { $set: { profileImg : profile._json.properties.profile_image } });
             result.message = "login success";
             return done(null, result);
         }
@@ -176,7 +177,7 @@ function checkLogin(req, res, next) {
     }
 };
 
-// 약관 동의 저장 API. ( post 방식으로 약관 동의 여부 data 저장 )
+// 약관 동의 저장 API. ( post 방식으로 약관 동의 여부 data 저장 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // 가족 탭 생성 API ( 신규 생성 )
 
@@ -217,16 +218,23 @@ app.post('/family/new', async (req, res) => {
     }
 });
 
-// 불러오기 API ( 아이디가 속한 가족 리스트업 )
+// 불러오기 API ( 아이디가 속한 가족 리스트업 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 )
+// 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 삭제 API ( 가족 탭 전체 삭제 )
+// 삭제 API ( 가족 탭 전체 삭제 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 멤버 삭제 API ( 가족 내 개인 삭제 )
+// 멤버 삭제 API ( 가족 내 개인 삭제 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 초대 API ( 기존 가족에서 초대 코드 보내기 )
+// 초대 API ( 기존 가족에서 초대 코드 보내기 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+app.get('/kakao/invite', (req, res) => {
+    let data = { familyId : req.user.familyId, jsCode : process.env.KAKAO_JS_API };
+    console.log(data);
+    res.render('kakaoinvite.ejs', { code : data });
+});
+
+// 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
 // 새 가족 생성 or 초대 코드 입력 화면에서 초대 코드 입력받을 때
 app.post('/family/invite/:id', async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
@@ -268,8 +276,6 @@ app.post('/family/invite', async (req, res) => {
     }
 });
 
-// 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
-
 // 사진 저장 API ( 전달받은 사진 서버 내 저장 )
 
 const { S3Client } = require('@aws-sdk/client-s3');
@@ -309,7 +315,7 @@ app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
     var dateString = WhatTimeNow();
     let count = await db.collection('counter').findOne({ name : 'count_eeho' });
     // console.log('count : ' + count.totalPost);
-    await db.collection('EEHO').insertOne({ _id : count.totalPost, img : req.file.location, userId : req.user._id, date : dateString });
+    await db.collection('EEHO').insertOne({ _id : count.totalPost, userId : req.user._id, familyId : req.user.familyId, img : req.file.location, date : dateString });
     await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     // console.log(result);
     res.redirect('/list?uploadSuccess=true');
@@ -329,7 +335,7 @@ function WhatTimeNow() {
     if(month < 10) dateString += "0";
     dateString += String(month);
     if(dateNum < 10) dateString += "0";
-    dateString += String(dateNum);
+    dateString += String(dateNum) + '_';
     if(hour < 10) dateString += "0";
     dateString += String(hour);
     if(min < 10) dateString += "0";
@@ -357,9 +363,9 @@ app.get('/delete/:id', checkLogin, async (req, res) => {
     }
 });
 
-// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 )
+// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 알림 전송 API ( 추후 설명 추가 )
+// 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
