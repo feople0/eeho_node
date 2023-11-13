@@ -68,6 +68,10 @@ passport.use('kakao-login', new KakaoStrategy({
     }
 }));
 
+app.get('/', (req, res) => {
+    res.redirect('/list');
+});
+
 // 카카오 로그인 페이지로 이동
 app.get('/kakao', function(req, res, next) {
     passport.authenticate('kakao-login', (error, user, info) => {
@@ -171,7 +175,6 @@ app.post('/register', checkLogin, async (req, res) => {
 app.get('/list', checkLogin, async (req, res) => {
     let result = await db.collection('EEHO').find().toArray();
     result.code = req.user.familyId;
-    console.log(result);
     res.render('list.ejs', { posts : result });
 });
 
@@ -186,6 +189,7 @@ function checkLogin(req, res, next) {
 // 가족 탭 생성 API ( 신규 생성 )
 
 // test
+// 가족 탭 생성 및 참여 선택
 app.get('/family/choice', checkLogin, function(req, res) {
     // res.render('choicefamily.ejs');
     if(req.user.familyId) {
@@ -196,6 +200,7 @@ app.get('/family/choice', checkLogin, function(req, res) {
 });
 
 // test
+// 가족 탭 생성
 app.get('/family/new', checkLogin, async (req, res) => {
     // console.log(req.user);
     if(req.user.familyId) {
@@ -205,6 +210,9 @@ app.get('/family/new', checkLogin, async (req, res) => {
     }
 });
 
+// 가족 탭 생성
+// 전달받는 데이터 => familyName, familyLocation
+// 생성되는 데이터 => 기존 유저 데이터에 familyId 추가, 가족 탭
 app.post('/family/new', async (req, res) => {
     // console.log(req.body);
     // console.log(req.user);
@@ -226,13 +234,16 @@ app.post('/family/new', async (req, res) => {
 
 // 초대 API ( 기존 가족에서 초대 코드 보내기 )
 
+// test
+// 기존 가족 탭에 구성원 초대
 app.get('/kakao/invite', checkLogin, (req, res) => {
-    
     res.render('kakaoinvite.ejs', { code : req.user.familyId });
 });
 
 // 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
-// 새 가족 생성 or 초대 코드 입력 화면에서 초대 코드 입력받을 때
+// 초대 코드 입력받을 때
+// 필요한 data => 초대 코드
+// 코드 확인해서 맞는 코드면 가족 구성 입력화면으로 전환
 app.post('/family/invite/:id', async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
     if(!result) {
@@ -243,28 +254,32 @@ app.post('/family/invite/:id', async (req, res) => {
 });
 
 // test
+// 초대 코드 통해서 기존 가족 탭에 추가
 app.get('/family/new/:id', checkLogin, async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
     if(!result) {
         res.status(400).send({ message : '유효하지 않은 초대코드' });
     } else {
-        res.render('invitefamily.ejs', { name : result.familyName });
+        res.render('invitefamily.ejs', { name : result });
     }
 });
 
 // 기존 가족 탭에 새로운 멤버 추가
+// familyName 사용하여 기존 이름과 비교하여 고를 수 있게.
+// 필요한 data => familyName, familyLocation
+// 추가되는 data => 새로운 멤버에 familyId 추가, 기존 가족 탭에 member[숫자] Object 추가
 app.post('/family/invite', async (req, res) => {
     // console.log(req.body);
     // console.log(req.user);
-    let result = await db.collection('family').findOne({ familyName : req.body.familynick });
+    let result = await db.collection('family').findOne({ familyId : req.body.familyId });
     // console.log(result);
     if(result) {
         let count = result.memberCount;
         let value = 'member' + count;
         let familyId = result._id;
         await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : familyId } });
-        await db.collection('family').updateOne({ familyName : req.body.familynick }, { $set: { [value] : {user : req.user._id, Location : req.body.familyLocation}}});
-        await db.collection('family').updateOne({ familyName : req.body.familynick }, { $inc : {memberCount : 1}});
+        await db.collection('family').updateOne({ familyId : req.body.familyId }, { $set: { [value] : {user : req.user._id, Location : req.body.familyLocation}}});
+        await db.collection('family').updateOne({ familyId : req.body.familyId }, { $inc : {memberCount : 1}});
         res.status(200).send({ message : '성공'});
         // res.redirect('/list')
     } else {

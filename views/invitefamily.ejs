@@ -15,7 +15,7 @@
     <form id="signup-form" action="/family/invite" method="POST">
       <div class="form-group">
         <label>가족별명</label>
-        <input type="text" class="form-control" value="<%= name %>" name="가족별명" disabled>
+        <input type="text" class="form-control" value="<%= name.familyName %>" name="가족별명" disabled>
       </div>
       <div class="form-group">
         <label>가족 내 위치</label><br>
@@ -26,6 +26,7 @@
             <option value="자녀">자녀</option>
         </select>
       </div>
+      <input type="hidden" id="hiddenValue" value=<%= name.familyName %>
       <button type="submit" class="btn btn-outline-secondary">생성</button>
     </form>
   </div>
@@ -36,6 +37,7 @@
 
       $('#signup-form').submit(function(event) {
         event.preventDefault();
+        var hiddenInputValue = document.getElementById("hiddenValue").value;
 
         var 이름 = $('input[name="가족별명"]').val();
         var familyLocation = document.getElementById('familyLocation').value;
@@ -47,6 +49,7 @@
           type: 'POST',
           url: '/family/invite', // 실제 서버 측 스크립트 경로
           data: {
+            familyId: hiddenInputValue,
             familynick: 이름,
             familyLocation: familyLocation
           },
