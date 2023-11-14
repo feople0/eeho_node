@@ -24,10 +24,6 @@ new MongoClient(url).connect().then( (client) => {
     console.log(err);
 });
 
-// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 // 회원가입, 로그인 ( 카카오톡 사용 시 하나의 api로 서버 내 분류 후 처리 가능 )
 // Session 방식으로 로그인을 위한 라이브러리
 const passport = require('passport');
@@ -145,7 +141,7 @@ app.get('/register', checkLogin, function(req, res) {
 });
 
 // 신규 회원가입 시 필요한 데이터를 로컬에서 저장할 때 받는 데이터
-// name, nick, gender, familyLocation, phone
+// name, nick, gender, phone
 app.post('/register', checkLogin, async (req, res) => {
     let data = await db.collection('user_login').findOne({ _id : new ObjectId(req.user._id) });
     // console.log(data);
@@ -170,13 +166,6 @@ app.post('/register', checkLogin, async (req, res) => {
 //     db.collection('EEHO').insertOne({ title : '어쩌구', content : '저쩌구' });
 //     res.send('news');
 // });
-
-// test
-app.get('/list', checkLogin, async (req, res) => {
-    let result = await db.collection('user_login').find().toArray();
-    result.code = req.user.familyId;
-    res.render('list.ejs', { posts : result });
-});
 
 // // 로그인 여부 확인
 // exports.isLoggedIn = (req, res, next) => {
@@ -245,6 +234,20 @@ app.post('/family/new', async (req, res) => {
 });
 
 // 불러오기 API ( 아이디가 속한 가족 리스트업 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// 최초에 메인 페이지 접속 시에 로딩되는 페이지를 위한 API
+app.get('/list', checkLogin, async (req, res) => {
+    let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
+    // console.log(result.member.length);
+    let data = [];
+    for(let i=0; i<result.member.length; i++) {
+        let res = await db.collection('user_login').findOne({ _id : result.member[i].user });
+        data.push(res);
+    }
+    // console.log(data);
+    data.code = req.user.familyId;
+    res.render('list.ejs', { posts : data });
+});
 
 // 초대 API ( 기존 가족에서 초대 코드 보내기 )
 
@@ -355,7 +358,7 @@ app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
     let receiver = [];
     let sendEEHOId = req.body.sendEEHOId;
     receiver = sendEEHOId.split('!!!');
-    console.log(receiver);
+    // console.log(receiver);
     await db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
     await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     // console.log(result);
@@ -386,6 +389,32 @@ function WhatTimeNow() {
 
     return dateString;
 }
+
+// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+app.get('/album', checkLogin, async (req, res) => {
+    let result = [];
+    let res1 = await db.collection('EEHO').find({ senderId : (req.user._id) }).toArray()
+    for(let i=0; i<res1.length; i++) {
+        result.push(res1[i]);
+    }
+    res1 = await db.collection('EEHO').find({ receiverId : String(req.user._id) }).toArray();
+    for(let i=0; i<res1.length; i++) {
+        result.push(res1[i]);
+    }
+    result.sort(function(a, b) {
+        return a._id - b._id;
+    });    
+    // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+    // console.log(result);
+    res.render('album.ejs', { photos : result });
+});
+
+app.get('/album/:id', checkLogin, async (req, res) => {
+    let result = await db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
+    res.render('detailphoto.ejs', { photo : result });
+})
+// 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // 사진 삭제 API ( 올린 사람에 한하여 삭제 가능 )
 
