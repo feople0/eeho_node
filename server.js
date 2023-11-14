@@ -58,7 +58,6 @@ passport.use('kakao-login', new KakaoStrategy({
             }
         } else { // 로그인
             console.log('카카오 로그인 성공');
-            await db.collection('user_login').updateOne( { id : profile.id }, { $set: { profileImg : profile._json.properties.profile_image } });
             result.message = "login success";
             return done(null, result);
         }
