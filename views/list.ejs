@@ -11,39 +11,64 @@
   <%= posts.length %>
   <div class="white-bg">
     <% for(let i=0; i<posts.length; i++) { %>
-    <div class="list-box">
-      <h4><%= posts[i].title %></h4>
-      <p><%= posts[i].content %></p>
+    <div class="list-box" id="<%= posts[i]._id %>">
+      <div class="image-container">
+        <img src="<%= posts[i].profileImg %>">
+        <h4><%= posts[i].username %></h4>
+      </div>
     </div>
     <% } %>
   </div> 
+  <img src="ko/add-friend.png" onclick="myFunction()" style="width: 100px; height: auto; cursor: pointer;">
   <a class="nav-link" href="/logout">Log Out</a>
-  <a class="nav-link" href="/upload">upload</a>
-  <br>
-  <img src="//developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png" onclick="myFunction()" style="cursor: pointer;">
+  <a class="nav-link" href="#" id="uploadButton">upload</a>
   
-  <input type="hidden" id="hiddenValue" value=<%= posts.code %>>
+  <input type="hidden" id="hiddenValue" value="<%= posts.code %>">
 
   <script src="/apikey.js" content></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
-      Kakao.init(apiKey);
-      function myFunction() {
-          var hiddenInputValue = document.getElementById("hiddenValue").value;
+    var selectedIds = [];
 
-          // 클릭되었을 때 실행할 함수 내용을 여기에 작성
-          Kakao.Share.sendCustom({
-              templateId: 100618,
-              templateArgs: {
-                  title: "지금 초대코드를 통해 에호에 참여해보세요",
-                  desc: "templateArgs에서 설정한 값을 템플릿에 ${title} 형태로 입력합니다.",
-                  url: "family/new/" + hiddenInputValue,
-                  THU: "https://developers.kakao.com/static/images/pc/txt_visual1.png"
+    $('.list-box').click(function() {
+      $(this).toggleClass('selected');
+        
+      selectedIds = $('.selected').map(function() {
+          return this.id;
+      }).get();
+      
+      console.log(selectedIds.length);
+    });
 
-              },
-          });
-
-          // 또는 원하는 다른 동작을 수행할 수 있습니다.
+    document.getElementById('uploadButton').addEventListener('click', function() {
+    // 페이지 이동
+      url = '/upload?sendEEHOId=';
+      for(let i=0; i<selectedIds.length; i++) {
+        if(i!=0) url = url + '!!!';
+        url = url + selectedIds[i];
       }
+      window.location.href = url;
+    });
+
+    Kakao.init(apiKey);
+    function myFunction() {
+      var hiddenInputValue = document.getElementById("hiddenValue").value;
+
+      // 클릭되었을 때 실행할 함수 내용을 여기에 작성
+      Kakao.Share.sendCustom({
+        templateId: 100618,
+        templateArgs: {
+          title: "지금 초대코드를 통해 에호에 참여해보세요",
+          desc: "templateArgs에서 설정한 값을 템플릿에 ${title} 형태로 입력합니다.",
+          url: "family/new/" + hiddenInputValue,
+          THU: "https://developers.kakao.com/static/images/pc/txt_visual1.png",
+          copyBtn: "copy/invite/code?hiddencode="+hiddenInputValue
+
+        },
+      });
+
+        // 또는 원하는 다른 동작을 수행할 수 있습니다.
+    }
         
   </script>
   </body>

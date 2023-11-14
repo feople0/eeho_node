@@ -135,7 +135,8 @@ app.get('/logout', (req, res) => {
 
 // test
 app.get('/login', function(req, res) {
-    res.render('login.ejs');
+    if(req.user) res.redirect('/list');
+    else res.render('login.ejs');
 });
 
 // test
@@ -172,16 +173,30 @@ app.post('/register', checkLogin, async (req, res) => {
 
 // test
 app.get('/list', checkLogin, async (req, res) => {
-    let result = await db.collection('EEHO').find().toArray();
+    let result = await db.collection('user_login').find().toArray();
     result.code = req.user.familyId;
     res.render('list.ejs', { posts : result });
 });
 
+// // 로그인 여부 확인
+// exports.isLoggedIn = (req, res, next) => {
+//     // console.log(req)
+//     console.log(req.originalUrl)
+//     if (req.isAuthenticated()) {
+//       next();
+//     } else {
+//       // res.status(403).send('로그인 필요');
+//       req.session.msg = 'You should login';
+//       return res.redirect('/login?path='+req.originalUrl);
+//     }
+//   };  
+
 function checkLogin(req, res, next) {
-    if (req.user) {
+    // console.log(req.originalUrl);
+    if (req.isAuthenticated()) {
         next();
     } else {
-        res.redirect('/login');
+        res.redirect('/login?redirectUrl=' + req.originalUrl);
     }
 };
 
@@ -218,7 +233,7 @@ app.post('/family/new', async (req, res) => {
     let result = await db.collection('family').findOne({ familyName : req.body.familynick });
     // console.log(result);
     if(!result) {
-        let result = await db.collection('family').insertOne({ memberCount : 1, familyName : req.body.familynick, member0 : {user : req.user._id, Location : req.body.familyLocation} });
+        let result = await db.collection('family').insertOne({ memberCount : 1, familyName : req.body.familynick, member : [{user : req.user._id, Location : req.body.familyLocation}] });
         // console.log(result);
         await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : result.insertedId } });
         res.status(200).send({ message : '성공'});
@@ -235,14 +250,16 @@ app.post('/family/new', async (req, res) => {
 
 // test
 // 기존 가족 탭에 구성원 초대
-app.get('/kakao/invite', checkLogin, (req, res) => {
-    res.render('kakaoinvite.ejs', { code : req.user.familyId });
-});
+// app.get('/kakao/invite', checkLogin, (req, res) => {
+//     res.render('kakaoinvite.ejs', { code : req.user.familyId });
+// });
 
 // 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
 // 초대 코드 입력받을 때
 // 필요한 data => 초대 코드
 // 코드 확인해서 맞는 코드면 가족 구성 입력화면으로 전환
+// 사용자가 초대 코드 입력해서 참여하기 버튼 누르면 요청 받는 곳
+// 맞게 처리 되면 코드 200으로 반환
 app.post('/family/invite/:id', async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
     if(!result) {
@@ -254,6 +271,8 @@ app.post('/family/invite/:id', async (req, res) => {
 
 // test
 // 초대 코드 통해서 기존 가족 탭에 추가
+// 코드 200으로 반환되면 리다이렉트 되는 곳
+// 가족 구성 역할 입력하는 페이지.
 app.get('/family/new/:id', checkLogin, async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
     if(!result) {
@@ -270,21 +289,28 @@ app.get('/family/new/:id', checkLogin, async (req, res) => {
 app.post('/family/invite', async (req, res) => {
     // console.log(req.body);
     // console.log(req.user);
-    let result = await db.collection('family').findOne({ familyId : req.body.familyId });
+    // console.log(req.body.familyId);
+    let result = await db.collection('family').findOne({ _id : new ObjectId(req.body.familyId) });
+    // console.log(result);
     // console.log(result);
     if(result) {
         let count = result.memberCount;
         let value = 'member' + count;
         let familyId = result._id;
         await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : familyId } });
-        await db.collection('family').updateOne({ familyId : req.body.familyId }, { $set: { [value] : {user : req.user._id, Location : req.body.familyLocation}}});
-        await db.collection('family').updateOne({ familyId : req.body.familyId }, { $inc : {memberCount : 1}});
+        await db.collection('family').updateOne({ _id : new ObjectId(req.body.familyId) }, { $push: { member: { $each: [{ user : req.user._id, Location : req.body.familyLocation }]}}});
+        
+        await db.collection('family').updateOne({ _id : new ObjectId(req.body.familyId) }, { $inc : {memberCount : 1}});
         res.status(200).send({ message : '성공'});
         // res.redirect('/list')
     } else {
         res.status(400).send({ message : '닉네임 중복' });
         // res.redirect('/register');
     }
+});
+
+app.get('/copy/invite/code', async (req, res) => {
+    res.render('codecopy.ejs');
 });
 
 // 사진 저장 API ( 전달받은 사진 서버 내 저장 )
@@ -326,7 +352,11 @@ app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
     var dateString = WhatTimeNow();
     let count = await db.collection('counter').findOne({ name : 'count_eeho' });
     // console.log('count : ' + count.totalPost);
-    await db.collection('EEHO').insertOne({ _id : count.totalPost, userId : req.user._id, familyId : req.user.familyId, img : req.file.location, date : dateString });
+    let receiver = [];
+    let sendEEHOId = req.body.sendEEHOId;
+    receiver = sendEEHOId.split('!!!');
+    console.log(receiver);
+    await db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
     await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     // console.log(result);
     res.redirect('/list?uploadSuccess=true');
