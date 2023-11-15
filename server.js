@@ -4,6 +4,8 @@ const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
+const TokenUtils = require('./public/utils/tokenUtils');
+const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
@@ -100,6 +102,8 @@ app.get("/api/kakao/code", async (req, res) => {
     
     // console.log(response_token.data);
     
+    const accessToken = TokenUtils.makeToken({ id: String(response_token.data.id) });
+    
     if (response_token.data) {
         // console.log(response_token.data);
         let result = await db.collection('user_login').findOne({ id : response_token.data.id });
@@ -110,11 +114,11 @@ app.get("/api/kakao/code", async (req, res) => {
                 return res.status(500).json({ message : "signup fail" });
             } else {
                 console.log('카카오 회원가입 성공');
-                return res.status(200).json({ message : "signup success" });
+                return res.status(200).json({ message : "signup success", token : accessToken });
             }
         } else { // 로그인
             console.log('카카오 로그인 성공');
-            return res.status(200).json({ message : "login success" });
+            return res.status(200).json({ message : "login success", token : accessToken });
         }
     } else {
         console.log('로그인 실패...!');
@@ -296,6 +300,7 @@ app.post('/family/new', async (req, res) => {
 app.get('/list', checkLogin, async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
     // console.log(result.member.length);
+
     let data = [];
     for(let i=0; i<result.member.length; i++) {
         let res = await db.collection('user_login').findOne({ _id : result.member[i].user });
