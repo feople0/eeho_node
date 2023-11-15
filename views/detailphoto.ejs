@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>사진 보기</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+
+        .photo-container {
+            width: 80%; /* 컨테이너 너비, 필요에 따라 조정 가능 */
+            max-width: 600px; /* 최대 너비 */
+            height: 80vh; /* 화면의 80% 높이 */
+            overflow: hidden; /* 넘치는 이미지 숨김 */
+            position: relative; /* 상대적 위치 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* 그림자 효과 */
+            background-color: white; /* 배경색 */
+            display: flex;
+            align-items: center; /* 세로 중앙 정렬 */
+            justify-content: center; /* 가로 중앙 정렬 */
+        }
+
+        .photo-container img {
+            max-height: 100%; /* 최대 세로 크기 */
+            max-width: 100%; /* 최대 가로 크기 */
+            width: auto; /* 자동 너비 조정 */
+            height: auto; /* 자동 높이 조정 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="photo-container">
+    <img src="<%= photo.img %>" alt="사진">
+</div>
+
+</body>
+</html>
