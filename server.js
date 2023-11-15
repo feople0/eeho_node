@@ -88,6 +88,7 @@ app.get("/api/kakao/code", async (req, res) => {
     };
     var token;
     await axios.post(uri, body, headers).then((res1) => {
+        console.log(res1);
             token = (res1.data.access_token);
     }).catch((error) => {
         console.log(error);
@@ -103,7 +104,8 @@ app.get("/api/kakao/code", async (req, res) => {
     // console.log(response_token.data);
     
     const accessToken = TokenUtils.makeToken({ id: String(response_token.data.id) });
-    
+    console.log(TokenUtils.verify(accessToken));
+
     if (response_token.data) {
         // console.log(response_token.data);
         let result = await db.collection('user_login').findOne({ id : response_token.data.id });
