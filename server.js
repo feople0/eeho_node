@@ -1,10 +1,18 @@
 const express = require('express');
 const app = express();
 const { MongoClient } = require('mongodb');
+const cors = require('cors');
+const axios = require('axios');
+const qs = require('qs');
+const TokenUtils = require('./public/utils/tokenUtils');
+const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
-
+app.use(cors({
+    origin: '*', // 모든 출처 허용 옵션. true 를 써도 된다.
+    credential: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
+}));
 // env 파일 연결.
 require('dotenv').config();
 app.set('view engine', 'ejs');
@@ -38,7 +46,7 @@ passport.use('kakao-login', new KakaoStrategy({
     clientID: process.env.KAKAO_API,
     callbackURL: '/auth/kakao/callback',
 }, async (accessToken, refreshToken, profile, done) => {
-    // console.log(accessToken + "\n-------");
+    console.log(accessToken + "\n-------");
     // console.log(profile);
 
     if (profile) {
@@ -65,6 +73,58 @@ passport.use('kakao-login', new KakaoStrategy({
 
 app.get('/', (req, res) => {
     res.redirect('/list');
+});
+
+app.get("/api/kakao/code", async (req, res) => {
+    const code = req.query.code;
+    const uri = "https://kauth.kakao.com/oauth/token";
+    const body = qs.stringify({
+        grant_type: "authorization_code",
+        client_id: process.env.KAKAO_API,
+        code: code,
+    });
+    const headers = {
+        "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
+    };
+    var token;
+    await axios.post(uri, body, headers).then((res1) => {
+            token = (res1.data.access_token);
+    }).catch((error) => {
+        console.log(error);
+        res.status(500).json(error);
+    });
+    
+    const uri_token = "https://kapi.kakao.com/v2/user/me";
+    const response_token = await axios.get(uri_token, { headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": `Bearer ${token}`
+    }});
+    
+    // console.log(response_token.data);
+    
+    const accessToken = TokenUtils.makeToken({ id: String(response_token.data.id) });
+    
+    if (response_token.data) {
+        // console.log(response_token.data);
+        let result = await db.collection('user_login').findOne({ id : response_token.data.id });
+        if(!(result)) { // 회원가입
+            let res2 = await db.collection('user_login').insertOne({ id : response_token.data.id, profileImg : response_token.data.properties.profile_image, email : response_token.data.kakao_account.email });
+            if(!res2) {
+                console.log('error...! data 저장 실패.');
+                return res.status(500).json({ message : "signup fail" });
+            } else {
+                console.log('카카오 회원가입 성공');
+                return res.status(200).json({ message : "signup success", token : accessToken });
+            }
+        } else { // 로그인
+            console.log('카카오 로그인 성공');
+            return res.status(200).json({ message : "login success", token : accessToken });
+        }
+    } else {
+        console.log('로그인 실패...!');
+        return res.status(500).json({ message : "login fail" });
+    }
+
 });
 
 // 카카오 로그인 페이지로 이동
@@ -182,6 +242,7 @@ app.post('/register', checkLogin, async (req, res) => {
 
 function checkLogin(req, res, next) {
     // console.log(req.originalUrl);
+    console.log(req.query.id);
     if (req.isAuthenticated()) {
         next();
     } else {
@@ -239,6 +300,7 @@ app.post('/family/new', async (req, res) => {
 app.get('/list', checkLogin, async (req, res) => {
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
     // console.log(result.member.length);
+
     let data = [];
     for(let i=0; i<result.member.length; i++) {
         let res = await db.collection('user_login').findOne({ _id : result.member[i].user });
@@ -404,7 +466,7 @@ app.get('/album', checkLogin, async (req, res) => {
     }
     result.sort(function(a, b) {
         return a._id - b._id;
-    });    
+    });
     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
     // console.log(result);
     res.render('album.ejs', { photos : result });
