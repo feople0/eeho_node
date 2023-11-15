@@ -13,6 +13,7 @@ app.use(cors({
     origin: '*', // 모든 출처 허용 옵션. true 를 써도 된다.
     credential: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
 }));
+
 // env 파일 연결.
 require('dotenv').config();
 app.set('view engine', 'ejs');
@@ -88,7 +89,6 @@ app.get("/api/kakao/code", async (req, res) => {
     };
     var token;
     await axios.post(uri, body, headers).then((res1) => {
-        console.log(res1);
             token = (res1.data.access_token);
     }).catch((error) => {
         console.log(error);
@@ -104,8 +104,7 @@ app.get("/api/kakao/code", async (req, res) => {
     // console.log(response_token.data);
     
     const accessToken = TokenUtils.makeToken({ id: String(response_token.data.id) });
-    console.log(TokenUtils.verify(accessToken));
-
+    
     if (response_token.data) {
         // console.log(response_token.data);
         let result = await db.collection('user_login').findOne({ id : response_token.data.id });
