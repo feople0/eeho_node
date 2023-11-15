@@ -9,7 +9,7 @@ exports.makeToken = (Object) =>{
         JWT_KEY, 
         {expiresIn: "2m"}
     );
-    console.log(token)
+    // console.log(token)
     return token;
 };
 
