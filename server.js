@@ -4,7 +4,7 @@ const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
-const TokenUtils = require('./public/utils/tokenUtils');
+const TokenUtils = require('./utils/tokenUtils');
 const jwt = require('jsonwebtoken');
 
 app.use(express.json());
