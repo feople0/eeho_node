@@ -25,6 +25,7 @@ const url = process.env.DB_URL;
 const ObjectId = require('mongodb').ObjectId;
 new MongoClient(url).connect().then( (client) => {
     db = client.db('EEHO');
+    app.db = db;
     // 서버 오픈
     app.listen(process.env.PORT, () => {
         console.log('http://localhost:' + process.env.PORT + ' 에서 서버 실행중');
@@ -125,7 +126,6 @@ app.get("/api/kakao/code", async (req, res) => {
         console.log('로그인 실패...!');
         return res.status(500).json({ message : "login fail" });
     }
-
 });
 
 // 카카오 로그인 페이지로 이동
@@ -243,13 +243,25 @@ app.post('/register', checkLogin, async (req, res) => {
 
 function checkLogin(req, res, next) {
     // console.log(req.originalUrl);
-    console.log(req.query.id);
+    // console.log(req.query.id);
     if (req.isAuthenticated()) {
         next();
     } else {
         res.redirect('/login?redirectUrl=' + req.originalUrl);
     }
 };
+
+
+
+
+
+const routes_album = require('./utils/album.js');
+app.use('/album/image', checkLogin, routes_album);
+const routes_family = require('./utils/family.js');
+app.use('/family', routes_family);
+
+
+
 
 // 가족 탭 생성 API ( 신규 생성 )
 
@@ -299,6 +311,7 @@ app.post('/family/new', async (req, res) => {
 
 // 최초에 메인 페이지 접속 시에 로딩되는 페이지를 위한 API
 app.get('/list', checkLogin, async (req, res) => {
+    // console.log(db);
     let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
     // console.log(result.member.length);
 
@@ -379,123 +392,66 @@ app.get('/copy/invite/code', async (req, res) => {
     res.render('codecopy.ejs');
 });
 
-// 사진 저장 API ( 전달받은 사진 서버 내 저장 )
 
-const { S3Client } = require('@aws-sdk/client-s3');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-const { async } = require('@firebase/util');
-const s3 = new S3Client({
-  region : 'ap-northeast-2',
-  credentials : {
-      accessKeyId : process.env.AWS_KEY,
-      secretAccessKey : process.env.AWS_SECRET
-  }
-});
 
-const upload = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: 'eehoforum',
-        key: function (req, file, cb) {
-            var dateString = WhatTimeNow();
-            dateString = dateString + '_' + req.user._id;
-            // console.log(dateString);
-            cb(null, dateString); //업로드시 파일명 변경가능
-        }
-    })
-});
-
-// test
-app.get('/upload', checkLogin, function(req, res) {
-    res.render('upload.ejs');
-});
-
-// form method="POST" action="/upload" enctype="multipart/form-data" 
-// 포스트 방식으로 이미지 전송
-app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
-    // console.log(req.file);
-    var dateString = WhatTimeNow();
-    let count = await db.collection('counter').findOne({ name : 'count_eeho' });
-    // console.log('count : ' + count.totalPost);
-    let receiver = [];
-    let sendEEHOId = req.body.sendEEHOId;
-    receiver = sendEEHOId.split('!!!');
-    // console.log(receiver);
-    await db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
-    await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
-    // console.log(result);
-    res.redirect('/list?uploadSuccess=true');
-});
-
-/** 현재 시간 구하기 위한 함수. */
-function WhatTimeNow() { 
-    var date = new Date();
-    var year = date.getFullYear();
-    var month = date.getMonth() + 1;
-    var dateNum = date.getDate();
-    var hour = date.getHours();
-    var min = date.getMinutes();
-    var sec = date.getSeconds();
-
-    var dateString = year;
-    if(month < 10) dateString += "0";
-    dateString += String(month);
-    if(dateNum < 10) dateString += "0";
-    dateString += String(dateNum) + '_';
-    if(hour < 10) dateString += "0";
-    dateString += String(hour);
-    if(min < 10) dateString += "0";
-    dateString += String(min);
-    if(sec < 10) dateString += "0";
-    dateString += String(sec);
-
-    return dateString;
-}
-
-// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-app.get('/album', checkLogin, async (req, res) => {
-    let result = [];
-    let res1 = await db.collection('EEHO').find({ senderId : (req.user._id) }).toArray()
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    res1 = await db.collection('EEHO').find({ receiverId : String(req.user._id) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    result.sort(function(a, b) {
-        return a._id - b._id;
-    });
-    // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
-    // console.log(result);
-    res.render('album.ejs', { photos : result });
-});
-
-app.get('/album/:id', checkLogin, async (req, res) => {
-    let result = await db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
-    res.render('detailphoto.ejs', { photo : result });
-})
 // 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 사진 삭제 API ( 올린 사람에 한하여 삭제 가능 )
 
-// delete/'에호넘버' 로 get요청 사용하여 delete 작용.
-// 성공 실패 여부는 url을 통해서 전달.
-app.get('/delete/:id', checkLogin, async (req, res) => {
-    let result = await db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), userId : req.user._id });
-    // console.log(에러.body);
-    // 응답.status(400).send({ message : '삭제 실패'});
 
-    if(result.deletedCount == 1) {
-        console.log('삭제완료');
-        res.redirect('/list?deleteSuccess=true');
-    } else {
-        console.log(result);
-        res.redirect('/list?deleteSuccess=false');
-    }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // // // // // // // // 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -678,3 +634,5 @@ app.get('/delete/:id', checkLogin, async (req, res) => {
 // //     });
     
 // // });
+
+// app.use('/album/image', require('./utils/album.js'));
