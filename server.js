@@ -5,6 +5,7 @@ const cors = require('cors');
 const axios = require('axios');
 const qs = require('qs');
 const TokenUtils = require('./utils/tokenUtils');
+app.TokenUtils = TokenUtils;
 const jwt = require('jsonwebtoken');
 
 app.use(express.json());
@@ -14,23 +15,114 @@ app.use(cors({
     credential: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
 }));
 
-// env 파일 연결.
-require('dotenv').config();
-app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/public'));
-
 // mongoDB 연결
 let db;
 const url = process.env.DB_URL;
 const ObjectId = require('mongodb').ObjectId;
 new MongoClient(url).connect().then( (client) => {
     db = client.db('EEHO');
+    app.db = db;
     // 서버 오픈
     app.listen(process.env.PORT, () => {
         console.log('http://localhost:' + process.env.PORT + ' 에서 서버 실행중');
     });
 }).catch((err)=>{
     console.log(err);
+});
+
+// env 파일 연결.
+require('dotenv').config();
+
+function checkLogin(req, res, next) {
+    let loginStatus = TokenUtils.verify(req.headers.token);
+    if(loginStatus.ok) {
+        next();
+    } else {
+        res.status(500).json({ message : loginStatus.message });
+    }
+};
+
+const routes_album = require('./utils/album.js');
+app.use('/album/image', checkLogin, routes_album);
+
+const routes_family = require('./utils/family.js');
+app.use('/family', routes_family);
+
+const routes_member = require('./utils/member.js');
+app.use('/member', checkLogin, routes_member);
+
+const routes_main = require('./utils/main.js');
+app.use('/main', checkLogin, routes_main);
+
+const routes_EEHO = require('./utils/EEHO.js');
+app.use('/eeho', checkLogin, routes_EEHO);
+
+
+
+
+
+
+
+app.set('view engine', 'ejs');
+app.use(express.static(__dirname + '/public'));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// 불러오기 API ( 아이디가 속한 가족 리스트업 )
+
+// 최초에 메인 페이지 접속 시에 로딩되는 페이지를 위한 API
+app.get('/list', checkLogin, async (req, res) => {
+    // console.log(db);
+    let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
+    // console.log(result.member.length);
+
+    let data = [];
+    for(let i=0; i<result.member.length; i++) {
+        let res = await db.collection('user_login').findOne({ _id : result.member[i].user });
+        data.push(res);
+    }
+    // console.log(data);
+    data.code = req.user.familyId;
+    res.render('list.ejs', { posts : data });
 });
 
 // 회원가입, 로그인 ( 카카오톡 사용 시 하나의 api로 서버 내 분류 후 처리 가능 )
@@ -71,10 +163,6 @@ passport.use('kakao-login', new KakaoStrategy({
         return done(null, false, { message: '카카오 로그인 실패.' });
     }
 }));
-
-app.get('/', (req, res) => {
-    res.redirect('/list');
-});
 
 app.get("/api/kakao/code", async (req, res) => {
     const code = req.query.code;
@@ -125,7 +213,6 @@ app.get("/api/kakao/code", async (req, res) => {
         console.log('로그인 실패...!');
         return res.status(500).json({ message : "login fail" });
     }
-
 });
 
 // 카카오 로그인 페이지로 이동
@@ -177,325 +264,67 @@ passport.deserializeUser(async (user, done) => {
     });
 });
 
-// 로그아웃 요청 시 처리함수
-app.get('/logout', (req, res) => {
-    // 세션 파기 (또는 삭제)
-    req.session.destroy(err => {
-        if (err) {
-            console.error('세션 파기 실패:', err);
-            res.status(500).send('세션 파기 실패');
-        } else {
-            res.redirect('/login'); // 로그아웃 후 리다이렉트할 페이지 설정
-        }
-    });
-});
 
-// test
-app.get('/login', function(req, res) {
-    if(req.user) res.redirect('/list');
-    else res.render('login.ejs');
-});
 
-// test
-app.get('/register', checkLogin, function(req, res) {
-    res.render('register.ejs');
-});
 
-// 신규 회원가입 시 필요한 데이터를 로컬에서 저장할 때 받는 데이터
-// name, nick, gender, phone
-app.post('/register', checkLogin, async (req, res) => {
-    let data = await db.collection('user_login').findOne({ _id : new ObjectId(req.user._id) });
-    // console.log(data);
-    // console.log(req.user._id);
-    if((data)) {
-        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { username : req.body.name, nickname : req.body.nick, gender : req.body.gender, phone : req.body.phone } });
-        res.status(200).send({ message : '성공했습니다!' });
-        // res.redirect('/family/choice');
-    } else {
-        res.status(400).send({ message : 'ID 중복'});
-        // res.redirect('/register');
-    }
-});
-
-// // test
-// app.get('/', (req, res) => {
-//     res.send('반갑다');
-// });
-
-// // test
-// app.get('/news', (req, res)=>{
-//     db.collection('EEHO').insertOne({ title : '어쩌구', content : '저쩌구' });
-//     res.send('news');
-// });
-
-// // 로그인 여부 확인
-// exports.isLoggedIn = (req, res, next) => {
-//     // console.log(req)
-//     console.log(req.originalUrl)
-//     if (req.isAuthenticated()) {
-//       next();
-//     } else {
-//       // res.status(403).send('로그인 필요');
-//       req.session.msg = 'You should login';
-//       return res.redirect('/login?path='+req.originalUrl);
-//     }
-//   };  
-
-function checkLogin(req, res, next) {
-    // console.log(req.originalUrl);
-    console.log(req.query.id);
-    if (req.isAuthenticated()) {
-        next();
-    } else {
-        res.redirect('/login?redirectUrl=' + req.originalUrl);
-    }
-};
-
-// 가족 탭 생성 API ( 신규 생성 )
-
-// test
-// 가족 탭 생성 및 참여 선택
-app.get('/family/choice', checkLogin, function(req, res) {
-    // res.render('choicefamily.ejs');
-    if(req.user.familyId) {
-        res.redirect('/list');
-    } else {
-        res.render('choicefamily.ejs');
-    }
-});
-
-// test
-// 가족 탭 생성
-app.get('/family/new', checkLogin, async (req, res) => {
-    // console.log(req.user);
-    if(req.user.familyId) {
-        res.redirect('/list');
-    } else {
-        res.render('newfamily.ejs');
-    }
-});
-
-// 가족 탭 생성
-// 전달받는 데이터 => familyName, familyLocation
-// 생성되는 데이터 => 기존 유저 데이터에 familyId 추가, 가족 탭
-app.post('/family/new', async (req, res) => {
-    // console.log(req.body);
-    // console.log(req.user);
-    let result = await db.collection('family').findOne({ familyName : req.body.familynick });
-    // console.log(result);
-    if(!result) {
-        let result = await db.collection('family').insertOne({ memberCount : 1, familyName : req.body.familynick, member : [{user : req.user._id, Location : req.body.familyLocation}] });
-        // console.log(result);
-        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : result.insertedId } });
-        res.status(200).send({ message : '성공'});
-        // res.redirect('/list')
-    } else {
-        res.status(400).send({ message : '닉네임 중복' });
-        // res.redirect('/register');
-    }
-});
-
-// 불러오기 API ( 아이디가 속한 가족 리스트업 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// 최초에 메인 페이지 접속 시에 로딩되는 페이지를 위한 API
-app.get('/list', checkLogin, async (req, res) => {
-    let result = await db.collection('family').findOne({ _id : new ObjectId(req.user.familyId) });
-    // console.log(result.member.length);
-
-    let data = [];
-    for(let i=0; i<result.member.length; i++) {
-        let res = await db.collection('user_login').findOne({ _id : result.member[i].user });
-        data.push(res);
-    }
-    // console.log(data);
-    data.code = req.user.familyId;
-    res.render('list.ejs', { posts : data });
-});
-
-// 초대 API ( 기존 가족에서 초대 코드 보내기 )
-
-// test
-// 기존 가족 탭에 구성원 초대
-// app.get('/kakao/invite', checkLogin, (req, res) => {
-//     res.render('kakaoinvite.ejs', { code : req.user.familyId });
-// });
-
-// 추가 API ( 기존 가족에 초대 URI 혹은 코드 사용하여 멤버 추가 )
-// 초대 코드 입력받을 때
-// 필요한 data => 초대 코드
-// 코드 확인해서 맞는 코드면 가족 구성 입력화면으로 전환
-// 사용자가 초대 코드 입력해서 참여하기 버튼 누르면 요청 받는 곳
-// 맞게 처리 되면 코드 200으로 반환
-app.post('/family/invite/:id', async (req, res) => {
-    let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
-    if(!result) {
-        res.status(400).send({ message : '유효하지 않은 초대코드' });
-    } else {
-        res.status(200).send({ message : '성공'});
-    }
-});
-
-// test
-// 초대 코드 통해서 기존 가족 탭에 추가
-// 코드 200으로 반환되면 리다이렉트 되는 곳
-// 가족 구성 역할 입력하는 페이지.
-app.get('/family/new/:id', checkLogin, async (req, res) => {
-    let result = await db.collection('family').findOne({ _id : new ObjectId(req.params.id) });
-    if(!result) {
-        res.status(400).send({ message : '유효하지 않은 초대코드' });
-    } else {
-        res.render('invitefamily.ejs', { name : result });
-    }
-});
-
-// 기존 가족 탭에 새로운 멤버 추가
-// familyName 사용하여 기존 이름과 비교하여 고를 수 있게.
-// 필요한 data => familyName, familyLocation
-// 추가되는 data => 새로운 멤버에 familyId 추가, 기존 가족 탭에 member[숫자] Object 추가
-app.post('/family/invite', async (req, res) => {
-    // console.log(req.body);
-    // console.log(req.user);
-    // console.log(req.body.familyId);
-    let result = await db.collection('family').findOne({ _id : new ObjectId(req.body.familyId) });
-    // console.log(result);
-    // console.log(result);
-    if(result) {
-        let count = result.memberCount;
-        let value = 'member' + count;
-        let familyId = result._id;
-        await db.collection('user_login').updateOne( { _id : new ObjectId(req.user._id) }, { $set: { familyId : familyId } });
-        await db.collection('family').updateOne({ _id : new ObjectId(req.body.familyId) }, { $push: { member: { $each: [{ user : req.user._id, Location : req.body.familyLocation }]}}});
-        
-        await db.collection('family').updateOne({ _id : new ObjectId(req.body.familyId) }, { $inc : {memberCount : 1}});
-        res.status(200).send({ message : '성공'});
-        // res.redirect('/list')
-    } else {
-        res.status(400).send({ message : '닉네임 중복' });
-        // res.redirect('/register');
-    }
-});
-
-app.get('/copy/invite/code', async (req, res) => {
-    res.render('codecopy.ejs');
-});
-
-// 사진 저장 API ( 전달받은 사진 서버 내 저장 )
-
-const { S3Client } = require('@aws-sdk/client-s3');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-const { async } = require('@firebase/util');
-const s3 = new S3Client({
-  region : 'ap-northeast-2',
-  credentials : {
-      accessKeyId : process.env.AWS_KEY,
-      secretAccessKey : process.env.AWS_SECRET
-  }
-});
-
-const upload = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: 'eehoforum',
-        key: function (req, file, cb) {
-            var dateString = WhatTimeNow();
-            dateString = dateString + '_' + req.user._id;
-            // console.log(dateString);
-            cb(null, dateString); //업로드시 파일명 변경가능
-        }
-    })
-});
-
-// test
-app.get('/upload', checkLogin, function(req, res) {
-    res.render('upload.ejs');
-});
-
-// form method="POST" action="/upload" enctype="multipart/form-data" 
-// 포스트 방식으로 이미지 전송
-app.post('/upload', checkLogin, upload.single("profile"), async (req, res) => {
-    // console.log(req.file);
-    var dateString = WhatTimeNow();
-    let count = await db.collection('counter').findOne({ name : 'count_eeho' });
-    // console.log('count : ' + count.totalPost);
-    let receiver = [];
-    let sendEEHOId = req.body.sendEEHOId;
-    receiver = sendEEHOId.split('!!!');
-    // console.log(receiver);
-    await db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
-    await db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
-    // console.log(result);
-    res.redirect('/list?uploadSuccess=true');
-});
-
-/** 현재 시간 구하기 위한 함수. */
-function WhatTimeNow() { 
-    var date = new Date();
-    var year = date.getFullYear();
-    var month = date.getMonth() + 1;
-    var dateNum = date.getDate();
-    var hour = date.getHours();
-    var min = date.getMinutes();
-    var sec = date.getSeconds();
-
-    var dateString = year;
-    if(month < 10) dateString += "0";
-    dateString += String(month);
-    if(dateNum < 10) dateString += "0";
-    dateString += String(dateNum) + '_';
-    if(hour < 10) dateString += "0";
-    dateString += String(hour);
-    if(min < 10) dateString += "0";
-    dateString += String(min);
-    if(sec < 10) dateString += "0";
-    dateString += String(sec);
-
-    return dateString;
-}
-
-// 사진 불러오기 API ( 전달받은 쿼리문 사용하여 불러오기 ex. 개인, 날짜, 전체 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-app.get('/album', checkLogin, async (req, res) => {
-    let result = [];
-    let res1 = await db.collection('EEHO').find({ senderId : (req.user._id) }).toArray()
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    res1 = await db.collection('EEHO').find({ receiverId : String(req.user._id) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    result.sort(function(a, b) {
-        return a._id - b._id;
-    });
-    // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
-    // console.log(result);
-    res.render('album.ejs', { photos : result });
-});
-
-app.get('/album/:id', checkLogin, async (req, res) => {
-    let result = await db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
-    res.render('detailphoto.ejs', { photo : result });
-})
 // 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-// 사진 삭제 API ( 올린 사람에 한하여 삭제 가능 )
 
-// delete/'에호넘버' 로 get요청 사용하여 delete 작용.
-// 성공 실패 여부는 url을 통해서 전달.
-app.get('/delete/:id', checkLogin, async (req, res) => {
-    let result = await db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), userId : req.user._id });
-    // console.log(에러.body);
-    // 응답.status(400).send({ message : '삭제 실패'});
 
-    if(result.deletedCount == 1) {
-        console.log('삭제완료');
-        res.redirect('/list?deleteSuccess=true');
-    } else {
-        console.log(result);
-        res.redirect('/list?deleteSuccess=false');
-    }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // // // // // // // // 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -678,3 +507,5 @@ app.get('/delete/:id', checkLogin, async (req, res) => {
 // //     });
     
 // // });
+
+// app.use('/album/image', require('./utils/album.js'));
