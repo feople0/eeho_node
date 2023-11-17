@@ -1,13 +1,9 @@
 const express = require('express');
-// const app = express();
 const router = express.Router();
-// const path = require('path');
 
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
-const { async } = require('@firebase/util');
-const { ObjectId } = require('mongodb');
 const s3 = new S3Client({
   region : 'ap-northeast-2',
   credentials : {
@@ -50,48 +46,7 @@ router.get('/index', async (req, res) => { // (사진 전체 응답) // calender
 router.get('/:id', async (req, res) => {
     let result = await req.app.db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
     res.render('detailphoto.ejs', { photo : result });
-})
-
-// router.get('/date', async (req, res) => { // ?date=YYYYMMDD
-//     console.log(req.query.date);
-//     let result = [];
-//     var search = new RegExp(`${req.query.date}`);
-//     console.log(search);
-//     let res1 = await req.app.db.collection('EEHO').find({ date : search, senderId : (req.user._id) }).toArray()
-//     for(let i=0; i<res1.length; i++) {
-//         result.push(res1[i]);
-//     }
-//     res1 = await req.app.db.collection('EEHO').find({ date : search, receiverId : String(req.user._id) }).toArray();
-//     for(let i=0; i<res1.length; i++) {
-//         result.push(res1[i]);
-//     }
-//     result.sort(function(a, b) {
-//         return a._id - b._id;
-//     });
-//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
-//     console.log(result);
-//     res.render('album.ejs', { photos : result });
-
-// });
-
-// router.get('/member', async (req, res) => { // member=유저이름
-//     console.log(req.query.member);
-//     let result = [];
-//     let res1 = await req.app.db.collection('EEHO').find({ senderId : (req.user._id), receiver : req.query.member }).toArray()
-//     for(let i=0; i<res1.length; i++) {
-//         result.push(res1[i]);
-//     }
-//     res1 = await req.app.db.collection('EEHO').find({ senderId : new ObjectId(req.query.member), receiverId : String(req.user._id) }).toArray();
-//     for(let i=0; i<res1.length; i++) {
-//         result.push(res1[i]);
-//     }
-//     result.sort(function(a, b) {
-//         return a._id - b._id;
-//     });
-//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
-//     // console.log(result);
-//     res.render('album.ejs', { photos : result });
-// });
+});
 
 router.get('/delete/:id', async (req, res) => {
     // console.log(req.app.db);
@@ -146,5 +101,46 @@ function WhatTimeNow() {
 
     return dateString;
 }
+
+// router.get('/date', async (req, res) => { // ?date=YYYYMMDD
+//     console.log(req.query.date);
+//     let result = [];
+//     var search = new RegExp(`${req.query.date}`);
+//     console.log(search);
+//     let res1 = await req.app.db.collection('EEHO').find({ date : search, senderId : (req.user._id) }).toArray()
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     res1 = await req.app.db.collection('EEHO').find({ date : search, receiverId : String(req.user._id) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     result.sort(function(a, b) {
+//         return a._id - b._id;
+//     });
+//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+//     console.log(result);
+//     res.render('album.ejs', { photos : result });
+
+// });
+
+// router.get('/member', async (req, res) => { // member=유저이름
+//     console.log(req.query.member);
+//     let result = [];
+//     let res1 = await req.app.db.collection('EEHO').find({ senderId : (req.user._id), receiver : req.query.member }).toArray()
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     res1 = await req.app.db.collection('EEHO').find({ senderId : new ObjectId(req.query.member), receiverId : String(req.user._id) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     result.sort(function(a, b) {
+//         return a._id - b._id;
+//     });
+//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+//     // console.log(result);
+//     res.render('album.ejs', { photos : result });
+// });
 
 module.exports = router;

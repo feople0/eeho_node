@@ -15,11 +15,6 @@ app.use(cors({
     credential: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
 }));
 
-// env 파일 연결.
-require('dotenv').config();
-app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/public'));
-
 // mongoDB 연결
 let db;
 const url = process.env.DB_URL;
@@ -35,13 +30,15 @@ new MongoClient(url).connect().then( (client) => {
     console.log(err);
 });
 
+// env 파일 연결.
+require('dotenv').config();
+
 function checkLogin(req, res, next) {
-    // console.log(req.originalUrl);
-    // console.log(req.query.id);
-    if (req.isAuthenticated()) {
+    let loginStatus = TokenUtils.verify(req.headers.token);
+    if(loginStatus.ok) {
         next();
     } else {
-        res.redirect('/login?redirectUrl=' + req.originalUrl);
+        res.status(500).json({ message : loginStatus.message });
     }
 };
 
@@ -57,12 +54,17 @@ app.use('/member', checkLogin, routes_member);
 const routes_main = require('./utils/main.js');
 app.use('/main', checkLogin, routes_main);
 
+const routes_EEHO = require('./utils/EEHO.js');
+app.use('/eeho', checkLogin, routes_EEHO);
 
 
 
 
 
 
+
+app.set('view engine', 'ejs');
+app.use(express.static(__dirname + '/public'));
 
 
 

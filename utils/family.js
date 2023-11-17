@@ -25,7 +25,7 @@ router.post('/create', async (req, res) => { // (가족이름, 사용자이름, 
         let dateToday = new Date();
         let result_user = await req.app.db.collection('user_login').insertOne({ userName : req.body.userName, signDate : dateToday });
         // console.log(result_user);
-        let result_insert = await req.app.db.collection('family').insertOne({ familyName : req.body.familyName, user : [{ userId : result_user.insertedId, rule : req.body.familyRule }] });
+        let result_insert = await req.app.db.collection('family').insertOne({ familyName : req.body.familyName, user : [{ userId : result_user.insertedId, userName : req.body.userName, rule : req.body.familyRule }] });
         // console.log(result_insert);
         await req.app.db.collection('user_login').updateOne({ userName : req.body.userName, signDate : dateToday }, { $set: {familyId : result_insert.insertedId} });
         res.status(200).send({ message : '성공했습니다!' });
@@ -39,7 +39,7 @@ router.post('/participate', async (req, res) => { // (가족이름, 사용자이
     if(result_find) {
         let dateToday = new Date();
         let result_user = await req.app.db.collection('user_login').insertOne({ userName : req.body.userName, signDate : dateToday });
-        await req.app.db.collection('family').updateOne({ familyName : req.body.familyName }, { $push: { user: { $each: [{ userId : result_user.insertedId, rule : req.body.familyRule }] } } });
+        await req.app.db.collection('family').updateOne({ familyName : req.body.familyName }, { $push: { user: { $each: [{ userId : result_user.insertedId, userName : req.body.userName, rule : req.body.familyRule }] } } });
         // console.log(result_find)
         await req.app.db.collection('user_login').updateOne({ userName : req.body.userName, signDate : dateToday }, { $set: {familyId : result_find._id} });
         res.status(200).send({ message : '성공했습니다!' });
