@@ -38,14 +38,14 @@ router.get('/index', async (req, res) => { // (사진 전체 응답) // calender
     result.sort(function(a, b) {
         return a._id - b._id;
     });
-    // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+    // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
     // console.log(result);
-    res.render('album.ejs', { photos : result });
+    res.status(200).json({ ok: true, photos: result });
 });
 
 router.get('/:id', async (req, res) => {
     let result = await req.app.db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
-    res.render('detailphoto.ejs', { photo : result });
+    res.status(200).json({ ok: true, photo : result });
 });
 
 router.get('/delete/:id', async (req, res) => {
@@ -57,10 +57,10 @@ router.get('/delete/:id', async (req, res) => {
 
     if(result.deletedCount == 1) {
         console.log('삭제완료');
-        res.redirect('/list?deleteSuccess=true');
+        res.status(200).json({ ok: true });
     } else {
         console.log(result);
-        res.redirect('/list?deleteSuccess=false');
+        res.status(500).json({ ok: false });
     }
 });
 
@@ -74,8 +74,21 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
     await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     // console.log(result);
-    res.redirect('/list?uploadSuccess=true');
+    res.status(200).json({ ok: true });
 });
+
+// router.post('/upload', upload.single("profile"), async (req, res) => { // (이미지, 받는 사람 이름)
+//     var dateString = WhatTimeNow();
+//     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
+//     let receiver = [];
+//     let sendEEHOId = req.body.sendEEHOId;
+//     receiver = sendEEHOId.split('!!!');
+//     // console.log(receiver);
+//     await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : req.user._id, receiverId : receiver, familyId : req.user.familyId, img : req.file.location, date : dateString });
+//     await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
+//     // console.log(result);
+//     res.status(200).json({ ok: true });
+// });
 
 /** 현재 시간 구하기 위한 함수. */
 function WhatTimeNow() { 
@@ -118,7 +131,7 @@ function WhatTimeNow() {
 //     result.sort(function(a, b) {
 //         return a._id - b._id;
 //     });
-//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+//     // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
 //     console.log(result);
 //     res.render('album.ejs', { photos : result });
 
@@ -138,7 +151,7 @@ function WhatTimeNow() {
 //     result.sort(function(a, b) {
 //         return a._id - b._id;
 //     });
-//     // let result = await db.collection('user_login').findOne({ id : profile.id, provider : profile.provider });
+//     // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
 //     // console.log(result);
 //     res.render('album.ejs', { photos : result });
 // });
