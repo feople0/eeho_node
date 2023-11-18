@@ -48,10 +48,10 @@ router.post('/create', upload.single("profile"), async (req, res) => { // (ê°€ì¡
     if(req.file) fileLocation = (req.file.location);
     let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday });
     
-    if (!result_user) res.status(500).json({ message: "cannot insert user data" });
+    if (!result_user) res.status(500).json({ ok: false, message: "cannot insert user data" });
     let result_insert = await req.app.db.collection('family').insertOne({ familyName : req.body.familyName, user : [{ userId : result_user.insertedId, userName : req.body.userName, role : req.body.familyRole, profileImg : fileLocation }] });
     
-    if (!result_insert) res.status(500).json({ message: "cannot insert family data" });
+    if (!result_insert) res.status(500).json({ ok: false, message: "cannot insert family data" });
     try {
         await req.app.db.collection('user').updateOne({ userName: req.body.userName, signDate: dateToday }, { $set: { familyId: result_insert.insertedId } });
         
@@ -79,7 +79,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
         let fileLocation = 'https://eehoforum.s3.ap-northeast-2.amazonaws.com/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);
         let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday });
-        if (!result_user) res.status(500).json({ message: "cannot insert user data" });
+        if (!result_user) res.status(500).json({ ok: false, message: "cannot insert user data" });
         try {
             await req.app.db.collection('family').updateOne({ code : req.body.code }, { $push: { user: { $each: [{ userId: result_user.insertedId, userName: req.body.userName, role: req.body.familyRole, profileImg : fileLocation }] } } });
             await req.app.db.collection('user').updateOne({ userName: req.body.userName, signDate: dateToday }, { $set: { familyId: result_find._id } });
@@ -87,11 +87,11 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
             const accessToken = req.app.TokenUtils.makeToken({ id: String(result_user.insertedId) });
             res.status(200).send({ ok : true, token : accessToken, familyName : result_find.familyName });
         } catch(error) {
-            res.status(500).send({ message: 'internal sever error', error: error });
+            res.status(500).send({ ok: false, message: 'internal sever error', error: error });
         }
         // console.log(result_find)
     } else {
-        res.status(500).send({ message : 'non-existent code!!!' });
+        res.status(500).send({ ok: false, message : 'non-existent code!!!' });
     }
 });
 
