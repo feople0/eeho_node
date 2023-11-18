@@ -29,25 +29,35 @@ const upload = multer({
     })
 });
 
+// 유저가 속한 가족의 모든 이미지를 가져오기
 router.get('/index', async (req, res) => { // (사진 전체 응답) // calender, member 별 보관함에 사용
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
-    let result = [];
-    let res1 = await req.app.db.collection('EEHO').find({ senderId: (new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    res1 = await req.app.db.collection('EEHO').find({ receiverId : String(new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    result.sort(function(a, b) {
-        return a._id - b._id;
-    });
-    // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
-    // console.log(result);
-    return res.status(200).json({ ok: true, photos: result });
+    let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
+    let res1 = await req.app.db.collection('EEHO').find({ familyId : result_user.familyId }).toArray();
+    return res.status(200).json({ ok: true, photos: res1 });
 });
+
+// // 유저가 받거나 전송한 이미지만 가져오기
+// router.get('/index', async (req, res) => { // (사진 전체 응답) // calender, member 별 보관함에 사용
+//     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+//     if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
+//     let result = [];
+//     let res1 = await req.app.db.collection('EEHO').find({ senderId: (new ObjectId(loginStatus.id)) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     res1 = await req.app.db.collection('EEHO').find({ receiverId : String(new ObjectId(loginStatus.id)) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     result.sort(function(a, b) {
+//         return a._id - b._id;
+//     });
+//     // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
+//     // console.log(result);
+//     return res.status(200).json({ ok: true, photos: result });
+// });
 
 router.get('/:id', async (req, res) => {
     let result = await req.app.db.collection('EEHO').findOne({ _id : parseInt(req.params.id) });
