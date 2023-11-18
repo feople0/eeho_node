@@ -1,7 +1,6 @@
 const { Expo } = require("expo-server-sdk");
 
 // 예시 토큰. db에서 보낼 사람의 토큰을 가져와야한다.
-const somePushTokens = ["ExponentPushToken[czMRa_ITtkRtBgpixu8ByL]"];
 let expo = new Expo();
 
 // Create the messages that you want to send to clients

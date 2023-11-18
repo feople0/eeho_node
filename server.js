@@ -7,6 +7,7 @@ const qs = require('qs');
 const TokenUtils = require('./utils/tokenUtils');
 app.TokenUtils = TokenUtils;
 const notificationUtils = require('./utils/notificationUtil.js');
+app.notificationUtils = notificationUtils;
 const jwt = require('jsonwebtoken');
 
 app.use(express.json());
