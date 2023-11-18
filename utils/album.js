@@ -19,9 +19,10 @@ const upload = multer({
         bucket: 'eehoforum',
         key: function (req, file, cb) {
             var dateString = WhatTimeNow();
-            console.log(file.originalname);
+            // console.log(file.originalname);
             let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-            dateString = dateString + '_' + loginStatus.id + '_' + req.files.length;
+            dateString = dateString + '_' + loginStatus.id;
+            // dateString = dateString + '_' + loginStatus.id + '_' + req.files.length;
             // console.log(dateString);
             cb(null, dateString); //업로드시 파일명 변경가능
         }
@@ -116,19 +117,74 @@ router.post('/body/test', upload.array("profile"), async (req, res) => { // (이
     // 3. 푸시 알림 전송
 });
 
-router.post('/upload', upload.array("profile"), async (req, res) => { // (이미지, 받는 사람 ID) 
+// // 사진 코드 받을 때 쓰는 거
+// router.post('/upload', upload.single("profile"), async (req, res) => { // (이미지, 받는 사람 ID) 
+//     // 1. 에호 객체 생성
+//     var dateString = WhatTimeNow();
+//     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
+
+//     let receiver = (req.body.receiverIds);
+//     if (!receiver) return res.status(500).json({ ok: false, message: "user ID is required" });
+//     receiver = JSON.parse(receiver);
+    
+//     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+//     if(!loginStatus) return res.status(500).json({ ok: false, message: "Access Token is necessary" });
+//     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
+//     if(!result_user) return res.status(500).json({ ok: false, message: "cannot find user" });
+//     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
+//     if(!result_find) return res.status(500).json({ ok: false, message: "cannot find family" });
+
+//     const foundData = [];
+//     for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
+    
+//     for(let i=0; i<foundData.length; i++) {
+//         delete foundData[i].role; 
+//         delete foundData[i].profileImg;
+//     }
+
+//     if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
+//     try {
+//         await req.app.db.collection('EEHO').insertOne({ _id: count.totalPost, senderId: new ObjectId(loginStatus.id), receiverId: foundData, familyId: result_user.familyId, img: req.file.location, date: dateString, imageCode: Number(req.body.imageCode) });
+//         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
+//     } catch (error) {
+//         return res.status(500).json({ ok: false, message: "internal server error", error : error });
+//     }
+
+//     // 2. 에호_리퀘스트 true 로 변경 // senderId : foundData[i].userId, isCompleted : false, receiverId.userId : loginStatus.id, familyId : result_user.familyId
+//     let response_data = [];
+//     for(let i=0; i<foundData.length; i++) {
+//         let result_isComplete = await req.app.db.collection('EEHO_req').findOne({ senderId : foundData[i].userId, isCompleted : false, 'receiverId.userId' : new ObjectId(loginStatus.id), familyId : result_user.familyId })
+//         if(result_isComplete) {
+//             let result_update = await req.app.db.collection('EEHO_req').updateOne({ _id : result_isComplete._id }, { $set : { isCompleted : true } });
+//             if(!(result_update.modifiedCount)) return res.status(500).json({ ok: false, message: "cannot update DB" });
+//             else response_data.push(result_isComplete.senderId);
+//         }
+//     }
+
+//     return res.status(200).json({ ok: true, change: response_data });
+//     // 3. 푸시 알림 전송
+// });
+
+// router.post('/upload/second', upload.single("profile"), async (req, res) => { // imageCode senderId 오늘날짜
+//     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+//     if(!loginStatus) return res.status(500).json({ ok: false, message: "Access Token is necessary" });
+//     var dateString = WhatTimeNow();
+//     dateString = (dateString.split('_'))[0];
+// 	const regex = new RegExp(`[${dateString}]`, 'g');
+
+//     // let result_update = await req.app.db.collection('EEHO').updateOne({ senderId: new ObjectId(loginStatus.id), imageCode: Number(req.body.imageCode) }, { $set : { isCompleted : true } });
+// });
+
+// 사진 한장 받을 때 쓰는 거
+router.post('/upload', upload.single("profile"), async (req, res) => { // (이미지, 받는 사람 ID)
     // 1. 에호 객체 생성
     var dateString = WhatTimeNow();
     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
 
-    console.log(req.body);
-    console.log(req.body.profile);
     let receiver = (req.body.receiverIds);
     if (!receiver) return res.status(500).json({ ok: false, message: "user ID is required" });
     receiver = JSON.parse(receiver);
-    // console.log(receiver);
-    // console.log(receiver.length);
-    // const receiver = receiverIds.split(',').map(item => item.trim().replace('[', '').replace(']', '')); // [ 'testMember2', 'testMember3' ]
+    
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if(!loginStatus) return res.status(500).json({ ok: false, message: "Access Token is necessary" });
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
@@ -140,14 +196,13 @@ router.post('/upload', upload.array("profile"), async (req, res) => { // (이미
     for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
     
     for(let i=0; i<foundData.length; i++) {
-        delete foundData[i].role; 
+        delete foundData[i].role;
         delete foundData[i].profileImg;
     }
 
-    console.log(req.files);
-    if (!req.files) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
+    if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
     try {
-        await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : [req.files[0].location, req.files[1].location], date : dateString });
+        await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : req.file.location, date : dateString });
         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     } catch (error) {
         return res.status(500).json({ ok: false, message: "internal server error", error : error });
@@ -163,10 +218,71 @@ router.post('/upload', upload.array("profile"), async (req, res) => { // (이미
             else response_data.push(result_isComplete.senderId);
         }
     }
+    
+    // 3. 푸시 알림 전송
+    const somePushTokens = [];
+    for (let i = 0; i < foundData.length; i++) {
+        console.log(foundData[i]);
+        if (foundData[i].pushToken) somePushTokens.push(foundData[i].pushToken);
+    }
+    console.log(somePushTokens);
+    req.app.notificationUtils(somePushTokens, "에호 사진이 도착했습니다."); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 
     return res.status(200).json({ ok: true, change: response_data });
-    // 3. 푸시 알림 전송
 });
+
+// 사진 두장 받을 때 쓰는 거
+// router.post('/upload', upload.array("profile"), async (req, res) => { // (이미지, 받는 사람 ID) 
+//     // 1. 에호 객체 생성
+//     var dateString = WhatTimeNow();
+//     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
+
+//     console.log(req.body);
+//     console.log(req.body.profile);
+//     let receiver = (req.body.receiverIds);
+//     if (!receiver) return res.status(500).json({ ok: false, message: "user ID is required" });
+//     receiver = JSON.parse(receiver);
+//     console.log(receiver);
+//     console.log(receiver.length);
+//     // const receiver = receiverIds.split(',').map(item => item.trim().replace('[', '').replace(']', '')); // [ 'testMember2', 'testMember3' ]
+//     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+//     if(!loginStatus) return res.status(500).json({ ok: false, message: "Access Token is necessary" });
+//     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
+//     if(!result_user) return res.status(500).json({ ok: false, message: "cannot find user" });
+//     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
+//     if(!result_find) return res.status(500).json({ ok: false, message: "cannot find family" });
+
+//     const foundData = [];
+//     for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
+    
+//     for(let i=0; i<foundData.length; i++) {
+//         delete foundData[i].role; 
+//         delete foundData[i].profileImg;
+//     }
+
+//     console.log(req.files);
+//     if (req.files.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
+//     try {
+//         await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : [req.files[0].location], date : dateString });
+//         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
+//     } catch (error) {
+//         return res.status(500).json({ ok: false, message: "internal server error", error : error });
+//     }
+
+//     // 2. 에호_리퀘스트 true 로 변경 // senderId : foundData[i].userId, isCompleted : false, receiverId.userId : loginStatus.id, familyId : result_user.familyId
+//     let response_data = [];
+//     for(let i=0; i<foundData.length; i++) {
+//         let result_isComplete = await req.app.db.collection('EEHO_req').findOne({ senderId : foundData[i].userId, isCompleted : false, 'receiverId.userId' : new ObjectId(loginStatus.id), familyId : result_user.familyId })
+//         if(result_isComplete) {
+//             let result_update = await req.app.db.collection('EEHO_req').updateOne({ _id : result_isComplete._id }, { $set : { isCompleted : true } });
+//             if(!(result_update.modifiedCount)) return res.status(500).json({ ok: false, message: "cannot update DB" });
+//             else response_data.push(result_isComplete.senderId);
+//         }
+//     }
+
+//     return res.status(200).json({ ok: true, change: response_data });
+//     // 3. 푸시 알림 전송
+// });
 
 /** 현재 시간 구하기 위한 함수. */
 function WhatTimeNow() { 

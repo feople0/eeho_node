@@ -85,7 +85,12 @@ router.post('/code/isExisted', async (req, res) => { // (코드) (code)
 });
 
 router.post('/participate', upload.single("profile"), async (req, res) => { // (코드, 사용자이름, 구성역할, 이미지) (code, userName, familyRole, profile)
-    if (!(req.body.code && req.body.userName && req.body.familyRole && req.body.pushToken)) return res.status(500).json({ ok: false, message: 'check your body again' });
+    console.log('participate');
+    console.log(req.body.code);
+    console.log(req.body.userName);
+    console.log(req.body.familyRole);
+    console.log(req.body.pushToken);
+    if (!(req.body.code && req.body.userName && req.body.familyRole)) return res.status(500).json({ ok: false, message: 'check your body again' });
     let result_find = await req.app.db.collection('family').findOne({ code: req.body.code });
     if(result_find) {
         if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "더이상 사용할 수 없음. 다섯명 넘어버림 ㅋ" });

@@ -17,20 +17,25 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     if(!req.body.member) return res.status(500).json({ ok: false, message: "member is required." });
     let receiver = req.body.member;
     console.log(req.body);
+    const somePushTokens = [];
+    
     for (let i = 0; i < receiver.length; i++) {
         const foundData = (result_find.user).find(item => item.userId.toString() === (receiver[i]).toString());
         console.log(foundData);
         if(foundData) {
             await req.app.db.collection('EEHO_req').insertOne({ senderId : new ObjectId(loginStatus.id), receiverId : { userId : foundData.userId, userName : foundData.userName }, familyId : result_user.familyId, isCompleted : false });
-            
+            if (foundData.pushToken) somePushTokens.push(foundData.pushToken);
         } else {
             return res.status(500).json({ ok: false, message: 'wrong approach' });
         }
     }
 
-    res.status(200).json({ ok: true });
-    
     // 2. 푸시 알람 발송
+    console.log(somePushTokens);
+    req.app.notificationUtils(somePushTokens, "에호 사진이 도착했습니다."); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
+
+    res.status(200).json({ ok: true });
+
 
 });
 
