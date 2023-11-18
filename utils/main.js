@@ -10,14 +10,14 @@ router.get('/index', (req, res) => {
 
 router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    console.log(loginStatus);
-    let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
-	console.log(result_user);
+	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
+	
 	if (!result_user) {
 		res.status(500).json({ ok: false, message: 'cannot find user' });
 	}
+
 	let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
-	console.log(result_find);
+	
 	if (!result_find) {
 		res.status(500).json({ ok: false, message: 'cannot find family' });
 	}
