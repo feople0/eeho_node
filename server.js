@@ -60,7 +60,11 @@ app.use('/eeho', checkLogin, routes_EEHO);
 const routes_album = require('./utils/album.js');
 app.use('/album/image', checkLogin, routes_album);
 
-
+app.get('/image/:imageName', (req, res) => {
+    const imageName = req.params.imageName;
+    const s3ImageUrl = process.env.AWS_Link + imageName;
+    res.redirect(s3ImageUrl);
+});
 
 
 
