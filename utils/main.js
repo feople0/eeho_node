@@ -40,6 +40,7 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 	}
 });
 
+// DB에 저장된 알림을 내려주기.
 router.get('/notice', (req, res) => { // 유저의 알림 내역 응답
     
 });
