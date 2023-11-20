@@ -31,7 +31,6 @@ require('dotenv').config();
 
 function checkLogin(req, res, next) {
     let loginStatus = TokenUtils.verify(req.headers.token);
-    console.log(loginStatus);
     if(loginStatus.ok) {
         next();
     } else {
