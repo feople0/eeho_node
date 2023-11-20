@@ -8,7 +8,6 @@ exports.makeToken = (Object) =>{
         Object,  
         JWT_KEY
     );
-    // console.log(token)
     return token;
 };
 

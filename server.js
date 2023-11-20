@@ -2,19 +2,16 @@ const express = require('express');
 const app = express();
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
-const axios = require('axios');
-const qs = require('qs');
 const TokenUtils = require('./utils/tokenUtils');
 app.TokenUtils = TokenUtils;
 const notificationUtils = require('./utils/notificationUtil.js');
 app.notificationUtils = notificationUtils;
-const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
 app.use(cors({
-    origin: '*', // 모든 출처 허용 옵션. true 를 써도 된다.
-    credential: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
+    origin: process.env.Domain_Link, // 모든 출처 허용 옵션. true 를 써도 된다.
+    credentials: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
 }));
 
 // mongoDB 연결
@@ -24,9 +21,7 @@ new MongoClient(url).connect().then( (client) => {
     db = client.db('EEHO');
     app.db = db;
     // 서버 오픈
-    app.listen(process.env.PORT, () => {
-        console.log('http://localhost:' + process.env.PORT + ' 에서 서버 실행중');
-    });
+    app.listen(process.env.PORT);
 }).catch((err)=>{
     console.log(err);
 });
@@ -36,8 +31,6 @@ require('dotenv').config();
 
 function checkLogin(req, res, next) {
     let loginStatus = TokenUtils.verify(req.headers.token);
-    console.log('checkLogin');
-    console.log(loginStatus);
     if(loginStatus.ok) {
         next();
     } else {
@@ -65,47 +58,6 @@ app.get('/image/:imageName', (req, res) => {
     const s3ImageUrl = process.env.AWS_Link + imageName;
     res.redirect(s3ImageUrl);
 });
-
-
-
-
-
-app.set('view engine', 'ejs');
-app.use(express.static(__dirname + '/public'));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -235,7 +187,7 @@ app.use(express.static(__dirname + '/public'));
   
 //     // // 로그인 성공
 //     // console.log('로그인 성공');
-//     // // res.status(200).send({ message: '로그인 성공' });
+//     // // res.status(200).json({ message: '로그인 성공' });
 //     // res.redirect('/list');
 // });
 
@@ -248,7 +200,7 @@ app.use(express.static(__dirname + '/public'));
 //     } else if(req.user.message == 'signup success') {
 //         res.redirect('/register');
 //     } else {
-//         res.status(500).send({ message : 'login error' });
+//         res.status(500).json({ message : 'login error' });
 //     }
 // });
 
@@ -274,65 +226,6 @@ app.use(express.static(__dirname + '/public'));
 
 
 
-// // 알림 전송 API ( 추후 설명 추가 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // // // // // // // // 수정 API ( 기존 가족 멤버에서 수정할 내용 ex. 가족 별명, 가족 내 위치 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // // // // // // // // 삭제 API ( 가족 탭 전체 삭제 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -341,178 +234,3 @@ app.use(express.static(__dirname + '/public'));
 
 // // // // // // // // 약관 동의 저장 API. ( post 방식으로 약관 동의 여부 data 저장 ) ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
-
-// // Import the functions you need from the SDKs you need
-// // import { initializeApp } from "firebase/app";
-// // import { getAnalytics } from "firebase/analytics";
-// // import { getMessaging, getToken } from "firebase/messaging";
-// // TODO: Add SDKs for Firebase products that you want to use
-// // https://firebase.google.com/docs/web/setup#available-libraries
-
-// // Your web app's Firebase configuration
-// // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// // const firebaseConfig = {
-// //   apiKey: process.env.FIREBASE_API,
-// //   authDomain: process.env.FIREBASE_DOMAIN,
-// //   projectId: process.env.FIREBASE_PROJECT,
-// //   storageBucket: process.env.FIREBASE_STORAGE,
-// //   messagingSenderId: process.env.FIREBASE_ID,
-// //   appId: process.env.FIREBASE_APP,
-// //   measurementId: process.env.FIREBASE_MEASUREMENT
-// // };
-
-// // Initialize Firebase
-// // app = initializeApp(firebaseConfig);
-
-// // const admin = require("firebase-admin");
-
-// // let serviceAccount = require(process.env.FILE_NAME);
-
-// // admin.initializeApp({
-// //     credential: admin.credential.cert(serviceAccount),
-// // });
-
-// // Initialize Firebase Cloud Messaging and get a reference to the service
-// // const messaging = getMessaging();
-
-// // app.get('/push', () => {
-// //     let deviceToken = ''
-    
-// //     let message = {
-// //         notification: {
-// //             title: '테스트 발송💛',
-// //             body: '망고플레이트 앱 확인해보세요!💚',
-// //         },
-// //         token: deviceToken,
-// //     }
-      
-// //     // Add the public key generated from the console here.
-// //     getToken(messaging, { vapidKey: process.env.GOOGLE_VAPIDKEY }).then((currentToken) => {
-// //         if (currentToken) {
-// //           // Send the token to your server and update the UI if necessary
-// //           // ...
-// //           console.log('Successfully sent message: : ', response);
-// //           return res.status(200).json({success : true});
-// //         } else {
-// //           // Show permission request UI
-// //           console.log('No registration token available. Request permission to generate one.');
-// //           // ...
-// //         }
-// //     }).catch((err) => {
-// //         console.log('Error Sending message!!! : ', err)
-// //         return res.status(400).json({ success : false })
-// //         // ...
-// //     });
-    
-// // });
-
-// // TODO: Replace the following with your app's Firebase project configuration
-// // See: https://firebase.google.com/docs/web/learn-more#config-object
-// // const firebaseConfig = {
-// //     apiKey: process.env.FIREBASE_API,
-// //     authDomain: process.env.FIREBASE_DOMAIN,
-// //     projectId: process.env.FIREBASE_PROJECT,
-// //     storageBucket: process.env.FIREBASE_STORAGE,
-// //     messagingSenderId: process.env.FIREBASE_ID,
-// //     appId: process.env.FIREBASE_APP,
-// //     measurementId: process.env.FIREBASE_MEASUREMENT
-// // };
-// // admin.initializeApp(firebaseConfig);
-// // const request = require('request');
-
-// // Initialize Firebase Cloud Messaging and get a reference to the service
-// const admin = require("firebase-admin");
-// let serviceAccount = require(process.env.FILE_NAME);
-// const fcm_admin = admin.initializeApp({
-//     credential: admin.credential.cert(serviceAccount),
-// });
-
-
-// app.get('/push/send', (req, res, next) => {
-//     // 파베 접근해서 token을 받아온다.
-//     var key=[];
-//     var token=[];
-
-//     // 파베 접근해서 token을 받아온다.
-//     firebase.database().ref("Token").on('value', (snapshot)=>{
-//         val = snapshot.val();
-//         console.log(val);
-        
-//         //키값들을 받는다.
-//         key = Object.keys(val);
-        
-//         // 토큰값을 받는다.
-//         token = Object.values(val);
-        
-//         console.log(key);
-//         console.log(token);
-//     });
-
-//     var registrationToken = '';
-    
-//     var message = {
-//         notification: {
-//             title: '시범 데이터 발송',
-//             body: '클라우드 메시지 전송이 잘 되는지 확인하기 위한, 메시지 입니다.'
-//         },
-//         token: registrationToken
-//     };
-
-//     fcm_admin.messaging().send(message).then((response) => {
-//         // Response is a message ID string.
-//         console.log('Successfully sent message:', response);
-//     })
-//     .catch((error) => {
-//         console.log('Error sending message:', error);
-//     });
-
-// });
-
-// // 메시지 형식
-// // "to" : "[디바이스 토큰 값]", 
-// // "priority" : "high", 
-// // "notification" : { 
-// //    "title" : "BackGround Title", 
-// //    "body" : "Background Message"
-// // }, 
-// // "data" : { 
-// //    "title" : "ForeGround Title", 
-// //    "body" : "Foreground Message" 
-// // }
-
-
-
-// // app.get('/push', () => {
-// //     let deviceToken = '';
-    
-// //     let message = {
-// //         notification: {
-// //             title: '테스트 발송💛',
-// //             body: '망고플레이트 앱 확인해보세요!💚',
-// //         },
-// //         token: deviceToken,
-// //     };
-    
-// //     // Add the public key generated from the console here.
-// //     getToken(messaging, { vapidKey: process.env.GOOGLE_VAPIDKEY }).then((currentToken) => {
-// //         if (currentToken) {
-// //           // Send the token to your server and update the UI if necessary
-// //           // ...
-// //           console.log('Successfully sent message: : ', response);
-// //           return res.status(200).json({success : true});
-// //         } else {
-// //           // Show permission request UI
-// //           console.log('No registration token available. Request permission to generate one.');
-// //           // ...
-// //         }
-// //     }).catch((err) => {
-// //         console.log('Error Sending message!!! : ', err);
-// //         return res.status(400).json({ success : false });
-// //         // ...
-// //     });
-    
-// // });
-
-// app.use('/album/image', require('./utils/album.js'));
