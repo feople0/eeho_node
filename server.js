@@ -31,7 +31,7 @@ require('dotenv').config();
 
 function checkLogin(req, res, next) {
     let loginStatus = TokenUtils.verify(req.headers.token);
-    
+    console.log(loginStatus);
     if(loginStatus.ok) {
         next();
     } else {
@@ -188,7 +188,7 @@ app.get('/image/:imageName', (req, res) => {
   
 //     // // 로그인 성공
 //     // console.log('로그인 성공');
-//     // // res.status(200).send({ message: '로그인 성공' });
+//     // // res.status(200).json({ message: '로그인 성공' });
 //     // res.redirect('/list');
 // });
 
@@ -201,7 +201,7 @@ app.get('/image/:imageName', (req, res) => {
 //     } else if(req.user.message == 'signup success') {
 //         res.redirect('/register');
 //     } else {
-//         res.status(500).send({ message : 'login error' });
+//         res.status(500).json({ message : 'login error' });
 //     }
 // });
 

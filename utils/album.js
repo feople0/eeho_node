@@ -47,10 +47,9 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     // 2. user data 사용해서, family member 조회하기 // userId, role, userName, profileImg, pushToken -> token, name, role 지우고 photos:[] 추가.
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
     const foundData = result_find.user;
-    let length = foundData.length;
+    
     var a;
-    for(let i=0; i<length; i++) {
-        if(i == length) break;
+    for(let i=0; i<foundData.length; i++) {
         if ((foundData[i].userId).toString() === (loginStatus.id).toString()) {
             a = i;
             continue;
@@ -61,39 +60,29 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
         foundData[i].photo = [];
     }
     foundData.splice(a, 1);
-    
-    let result = [];
-    let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    // 3. familyId 사용해서 업로드된 모든 사진 조회하기
-    res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    result.sort(function(a, b) {
-        return a._id - b._id;
-    });
 
-    // 4. 조회한 사진에서 userId 사용해서 family data에 집어넣기.
-    for (const found of foundData) {
-        for (const res of result) {
-          if (found.userId.toString() === res.senderId.toString()) {
-              found.photo.push(res.img);
-              continue;
+    let result = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).toArray();
+    let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).toArray();
+    for(let i=0; i<res1.length; i++) {
+        let index = 0;
+        while(index < result.length && result[index]._id < res1[i]._id) index++;
+        result.splice(index, 0, res1[i]);
+    }
+
+    const userIdMap = new Map();
+    for(let i=0; i<foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
+    
+    for(const res of result) {
+        if((res.senderId.toString()) === (loginStatus.id.toString())) {
+            for(let i=0; i<res.receiverId.length; i++) {
+                var index = userIdMap.get(res.receiverId[i].userId.toString());
+                (foundData[index].photo).push(res.img);
             }
-            var a = 0;
-            for (let i = 0; i < (res.receiverId).length; i++){
-                if (found.userId.toString() === res.receiverId[i].userId.toString()) {
-                    found.photo.push(res.img);
-                    var a = 1;
-                    break;
-                }
-            }
-            if (a) continue;
+            continue;
         }
-      }
+        var index = userIdMap.get(res.senderId.toString());
+        foundData[index].photo.push(res.img);
+    }
 
     res.status(200).json({ ok: true, data: foundData });
 
@@ -106,11 +95,12 @@ router.get('/:id', async (req, res) => {
 
 router.get('/delete/:id', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    let result = await req.app.db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), senderId : new ObjectId(loginStatus.id) });
-    // 응답.status(400).send({ message : '삭제 실패'});
+    let result;
+    if(loginStatus.id) result = await req.app.db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), senderId : new ObjectId(loginStatus.id) });
+    // 응답.status(400).json({ message : '삭제 실패'});
 
     if(result.deletedCount == 1) {
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, id: req.params.id });
     } else {
         return res.status(500).json({ ok: false });
     }
@@ -123,11 +113,11 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
 
     let receiver = (req.body.receiverIds);
-    if (!receiver) return res.status(500).json({ ok: false, message: "user ID is required" });
+    if (!receiver) return res.status(400).json({ ok: false, message: "user ID is required" });
     receiver = JSON.parse(receiver);
     
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(500).json({ ok: false, message: "Access Token is necessary" });
+    if(!loginStatus) return res.status(400).json({ ok: false, message: "Access Token is necessary" });
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
     if(!result_user) return res.status(500).json({ ok: false, message: "cannot find user" });
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
@@ -141,7 +131,7 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
         delete foundData[i].profileImg;
     }
 
-    if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
+    if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 전송에 실패했습니다. 다시 시도해주세요.' });
     try {
         const replacedString = (req.file.location).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
         await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : replacedString, date : dateString });
@@ -165,10 +155,8 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     const somePushTokens = [];
     const pushReceiver = [];
     for (let i = 0; i < foundData.length; i++) {
-        if (foundData[i].pushToken) {
-            somePushTokens.push(foundData[i].pushToken);
-        }
         pushReceiver.push(foundData[i].userId);
+        if (foundData[i].pushToken) somePushTokens.push(foundData[i].pushToken);
     }
     
     var pushText = `${result_user.userName}님의 에호 사진이 도착했습니다.`;
@@ -177,14 +165,11 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     // 3. DB 저장.
     // id, date, body, senderId, text
     try {
-        for(const receiver of pushReceiver) {
-            await req.app.db.collection('notification').insertOne({ date : new Date(), receiverId : receiver, text : pushText });
-        }
+        for(const receiver of pushReceiver) await req.app.db.collection('notification').insertOne({ date : new Date(), receiverId : receiver, text : pushText });
+        return res.status(200).json({ ok: true, change: response_data });
     } catch (error) {
         return res.status(500).json({ ok: false, message: "internal server error", error : error });
     }
-
-    return res.status(200).json({ ok: true, change: response_data });
 });
 
 /** 현재 시간 구하기 위한 함수. */
@@ -212,26 +197,26 @@ function WhatTimeNow() {
     return dateString;
 }
 
-// // 유저가 받거나 전송한 이미지만 가져오기
-router.get('/index', async (req, res) => { // (사진 전체 응답) // calender, member 별 보관함에 사용
-    let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
-    let result = [];
-    let res1 = await req.app.db.collection('EEHO').find({ senderId: (new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    res1 = await req.app.db.collection('EEHO').find({ receiverId : String(new ObjectId(loginStatus.id)) }).toArray();
-    for(let i=0; i<res1.length; i++) {
-        result.push(res1[i]);
-    }
-    result.sort(function(a, b) {
-        return a._id - b._id;
-    });
-    // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
-    // console.log(result);
-    return res.status(200).json({ ok: true, photos: result });
-});
+// // // 유저가 받거나 전송한 이미지만 가져오기
+// router.get('/index', async (req, res) => { // (사진 전체 응답) // calender, member 별 보관함에 사용
+//     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+//     if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
+//     let result = [];
+//     let res1 = await req.app.db.collection('EEHO').find({ senderId: (new ObjectId(loginStatus.id)) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     res1 = await req.app.db.collection('EEHO').find({ receiverId : String(new ObjectId(loginStatus.id)) }).toArray();
+//     for(let i=0; i<res1.length; i++) {
+//         result.push(res1[i]);
+//     }
+//     result.sort(function(a, b) {
+//         return a._id - b._id;
+//     });
+//     // let result = await db.collection('user').findOne({ id : profile.id, provider : profile.provider });
+//     // console.log(result);
+//     return res.status(200).json({ ok: true, photos: result });
+// });
 
 // router.get('/date', async (req, res) => { // ?date=YYYYMMDD
 //     console.log(req.query.date);
