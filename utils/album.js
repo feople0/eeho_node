@@ -180,12 +180,27 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     
     // 3. 푸시 알림 전송
     const somePushTokens = [];
+    const pushReceiver = [];
     for (let i = 0; i < foundData.length; i++) {
         console.log(foundData[i]);
-        if (foundData[i].pushToken) somePushTokens.push(foundData[i].pushToken);
+        if (foundData[i].pushToken) {
+            somePushTokens.push(foundData[i].pushToken);
+        }
+        pushReceiver.push(foundData[i].userId);
     }
-    console.log(somePushTokens);
-    req.app.notificationUtils(somePushTokens, "에호 사진이 도착했습니다."); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
+    
+    var pushText = `${result_user.userName}님의 에호 사진이 도착했습니다.`;
+    req.app.notificationUtils(somePushTokens, pushText); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
+
+    // 3. DB 저장.
+    // id, date, body, senderId, text
+    try {
+        for(const receiver of pushReceiver) {
+            await req.app.db.collection('notification').insertOne({ date : new Date(), receiverId : receiver, text : pushText });
+        }
+    } catch (error) {
+        return res.status(500).json({ ok: false, message: "internal server error", error : error });
+    }
 
     return res.status(200).json({ ok: true, change: response_data });
 });
