@@ -38,6 +38,7 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
 
     res.status(200).json({ ok: true });
 
+    // 3. DB 저장.
 
 });
 

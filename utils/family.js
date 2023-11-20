@@ -6,6 +6,7 @@ const router = express.Router();
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
+const { ObjectId } = require('mongodb');
 const s3 = new S3Client({
   region : 'ap-northeast-2',
   credentials : {
@@ -104,7 +105,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
             await req.app.db.collection('user').updateOne({ userName: req.body.userName, signDate: dateToday }, { $set: { familyId: result_find._id } });
             await req.app.db.collection('family').updateOne({ _id : result_find._id }, { $inc : {familyCount : 1}});
             const accessToken = req.app.TokenUtils.makeToken({ id: String(result_user.insertedId) });
-            return res.status(200).send({ ok : true, token : accessToken, familyName : result_find.familyName });
+            return res.status(200).send({ ok : true, token : accessToken, familyName : result_find.familyName, profileImg : fileLocation });
         } catch(error) {
             return res.status(500).send({ ok: false, message: 'internal sever error', error: error });
         }
@@ -112,6 +113,21 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     } else {
         return res.status(500).send({ ok: false, message : 'non-existent code!!!' });
     }
+});
+
+// 유저 id를 사용해서 유저 정보를 전부 조회하고 내려보내기
+// post -> body { userId: "123" }
+router.post('/userInformation', async (req, res) => {
+    // 1. req.body.userId => 사용해서 user 정보 조회하기.
+    if(!(req.body.userId)) return res.status(500).json({ok: false, message: 'check your body again'});
+    let result_find = await req.app.db.collection('user').findOne({ _id : new ObjectId(req.body.userId) }); //String에서 Objectf로 형변환
+    console.log(result_find);
+    // 2. 조회한 data가 있으면 json형식으로 데이터 보내주기.
+    if(result_find){
+        return res.status(200).send({ok: true, userInformation: result_find});
+    }
+    // 3. error handling.
+
 });
 
 module.exports = router;
