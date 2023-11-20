@@ -21,11 +21,9 @@ const upload = multer({
         bucket: 'eehoforum',
         key: function (req, file, cb) {
             var dateString = WhatTimeNow();
-            // console.log(file.originalname);
+            var ext = path.extname(file.originalname);
             let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-            dateString = dateString + '_' + loginStatus.id;
-            // dateString = dateString + '_' + loginStatus.id + '_' + req.files.length;
-            // console.log(dateString);
+            dateString = dateString + '_' + loginStatus.id + ext;
             cb(null, dateString); //업로드시 파일명 변경가능
         }
     })
@@ -49,27 +47,25 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     // 2. user data 사용해서, family member 조회하기 // userId, role, userName, profileImg, pushToken -> token, name, role 지우고 photos:[] 추가.
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
     const foundData = result_find.user;
-    
-    for(let i=0; i<foundData.length; i++) {
+    let length = foundData.length;
+    var a;
+    for(let i=0; i<length; i++) {
+        if(i == length) break;
         if ((foundData[i].userId).toString() === (loginStatus.id).toString()) {
-            foundData.splice(i, 1); // 해당 인덱스의 요소를 삭제
-            // console.log(loginStatus.id);
-            // delete foundData[i];
-            // continue;
+            a = i;
+            continue;
         }
         delete foundData[i].role;
         delete foundData[i].profileImg;
         delete foundData[i].pushToken;
         foundData[i].photo = [];
     }
-    // console.log(foundData);
-
+    foundData.splice(a, 1);
+    
     let result = [];
     let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).toArray();
     for(let i=0; i<res1.length; i++) {
         result.push(res1[i]);
-        // console.log("123123123");
-        // console.log(res1[i]);
     }
     // 3. familyId 사용해서 업로드된 모든 사진 조회하기
     res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).toArray();
@@ -79,7 +75,6 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     result.sort(function(a, b) {
         return a._id - b._id;
     });
-    // console.log(result);
 
     // 4. 조회한 사진에서 userId 사용해서 family data에 집어넣기.
     for (const found of foundData) {
@@ -90,12 +85,7 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
             }
             var a = 0;
             for (let i = 0; i < (res.receiverId).length; i++){
-                // console.log(found.userId.toString());
-                // console.log(res.receiverId[i].toString());
                 if (found.userId.toString() === res.receiverId[i].userId.toString()) {
-                    console.log(found.userId.toString())
-                    console.log(res.receiverId[i].userId);
-                    console.log(res);
                     found.photo.push(res.img);
                     var a = 1;
                     break;
@@ -104,8 +94,6 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
             if (a) continue;
         }
       }
-
-    // console.log(foundData);
 
     res.status(200).json({ ok: true, data: foundData });
 
@@ -117,24 +105,19 @@ router.get('/:id', async (req, res) => {
 });
 
 router.get('/delete/:id', async (req, res) => {
-    // console.log(req.app.db);
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     let result = await req.app.db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), senderId : new ObjectId(loginStatus.id) });
-    // console.log(에러.body);
     // 응답.status(400).send({ message : '삭제 실패'});
 
     if(result.deletedCount == 1) {
-        console.log('삭제완료');
         return res.status(200).json({ ok: true });
     } else {
-        console.log(result);
         return res.status(500).json({ ok: false });
     }
 });
 
 // 사진 한장 받을 때 쓰는 거
 router.post('/upload', upload.single("profile"), async (req, res) => { // (이미지, 받는 사람 ID)
-    console.log('업로드 요청');
     // 1. 에호 객체 생성
     var dateString = WhatTimeNow();
     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
@@ -160,7 +143,7 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
 
     if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
     try {
-        const replacedString = (req.file.location).replace(process.env.AWS_Link, 'http://localhost:8080/image/');
+        const replacedString = (req.file.location).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
         await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : replacedString, date : dateString });
         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     } catch (error) {
@@ -182,7 +165,6 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     const somePushTokens = [];
     const pushReceiver = [];
     for (let i = 0; i < foundData.length; i++) {
-        console.log(foundData[i]);
         if (foundData[i].pushToken) {
             somePushTokens.push(foundData[i].pushToken);
         }

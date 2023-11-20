@@ -18,15 +18,12 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     let receiver = req.body.member;
     // member 없으면 에러 리턴 !! 400으로 멤버 필요합니다. ok false message 가족을 선택해주세요!
     if (receiver.length === 0) return res.status(400).json({ ok: false, message: '가족을 선택해주세요!!!' });
-    console.log(req.body);
-    console.log(receiver);
-    console.log(receiver.length);
+    
     const somePushTokens = [];
     const pushReceiver = [];
     
     for (let i = 0; i < receiver.length; i++) {
         const foundData = (result_find.user).find(item => item.userId.toString() === (receiver[i]).toString());
-        console.log(foundData);
         if(foundData) {
             await req.app.db.collection('EEHO_req').insertOne({ senderId : new ObjectId(loginStatus.id), receiverId : { userId : foundData.userId, userName : foundData.userName }, familyId : result_user.familyId, isCompleted : false });
             if (foundData.pushToken) {
@@ -39,7 +36,6 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     }
 
     // 2. 푸시 알람 발송
-    console.log(somePushTokens);
     var pushText = `${result_user.userName}님이 에호 요청을 보냈습니다.`;
     req.app.notificationUtils(somePushTokens, pushText, { from: new ObjectId(loginStatus.id) }); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 

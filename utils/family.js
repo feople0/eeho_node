@@ -1,7 +1,7 @@
 const express = require('express');
 // const app = express();
 const router = express.Router();
-// const path = require('path');
+const path = require('path');
 
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
@@ -21,22 +21,48 @@ const upload = multer({
         bucket: 'eehoforum',
         key: function (req, file, cb) {
             var ext = path.extname(file.originalname);
-            console.log("ext : " + ext);
+            var dateString = WhatTimeNow();
             // if(ext !== '.png' && ext !== '.JPG' && ext !== '.jpg') {
             //     return callback(new Error('PNG, JPG만 업로드하세요'))
             // }
-            // console.log(dateString);
-            cb(null, file.originalname); //업로드시 파일명 변경가능
+            cb(null, (dateString + file.originalname)); //업로드시 파일명 변경가능
         }
     })
 });
 
+/** 현재 시간 구하기 위한 함수. */
+function WhatTimeNow() { 
+    var date = new Date();
+    var year = date.getFullYear();
+    var month = date.getMonth() + 1;
+    var dateNum = date.getDate();
+    var hour = date.getHours();
+    var min = date.getMinutes();
+    var sec = date.getSeconds();
+    var milsec = date.getMilliseconds();
+
+    var dateString = year;
+    if(month < 10) dateString += "0";
+    dateString += String(month);
+    if(dateNum < 10) dateString += "0";
+    dateString += String(dateNum) + "_";
+    if(hour < 10) dateString += "0";
+    dateString += String(hour);
+    if(min < 10) dateString += "0";
+    dateString += String(min);
+    if(sec < 10) dateString += "0";
+    dateString += String(sec);
+    if(milsec < 10) dateString += "00";
+    else if(milsec < 100) dateString += "0";
+    dateString += String(milsec) + "__";
+
+    return dateString;
+}
+
 router.post('/member/login', async (req, res) => { // (가족이름, 사용자이름) (familyName, userName)
-    console.log(req.body.familyName);
     if (!req.body.familyName) return res.status(500).json({ ok: false, message: 'you should put your familyName' });
     let result_family = await req.app.db.collection('family').findOne({ familyName : req.body.familyName });
     if(result_family) {
-        console.log(result_family);
         if (!req.body.userName) return res.status(500).json({ ok: false, message: 'you should put your userName' });
         let result_find = await req.app.db.collection('user').findOne({ userName : req.body.userName, familyId : result_family._id });
         if(result_find) {
@@ -52,14 +78,14 @@ router.post('/member/login', async (req, res) => { // (가족이름, 사용자�
 
 router.post('/create', upload.single("profile"), async (req, res) => { // (가족이름, 사용자이름, 구성역할, 이미지) (familyName, userName, familyRole, profile)
     let dateToday = new Date();
-    
-    let fileLocation = 'http://localhost:8080/image/basic-profile-img.png';
+    let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
     if (req.file) fileLocation = (req.file.location);
-    if (!(req.body.userName && req.body.pushToken && req.body.familyName && req.body.familyRole)) return res.status(500).json({ ok: false, message: 'check your body, userName, pushToken, familyName, and familyRole' });
+    if (!(req.body.userName && req.body.familyName && req.body.familyRole)) return res.status(500).json({ ok: false, message: 'check your body, userName, pushToken, familyName, and familyRole' });
     let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
     
     if (!result_user) return res.status(500).json({ ok: false, message: "cannot insert user data" });
-    let result_insert = await req.app.db.collection('family').insertOne({ familyName : req.body.familyName, familyCount : 1, user : [{ userId : result_user.insertedId, userName : req.body.userName, role : req.body.familyRole, profileImg : fileLocation, pushToken : req.body.pushToken }] });
+    const replacedString = (fileLocation).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
+    let result_insert = await req.app.db.collection('family').insertOne({ familyName : req.body.familyName, familyCount : 1, user : [{ userId : result_user.insertedId, userName : req.body.userName, role : req.body.familyRole, profileImg : replacedString, pushToken : req.body.pushToken }] });
     
     if (!result_insert) return res.status(500).json({ ok: false, message: "cannot insert family data" });
     try {
@@ -91,13 +117,14 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     if(result_find) {
         if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "더이상 사용할 수 없음. 다섯명 넘어버림 ㅋ" });
         let dateToday = new Date();
-        let fileLocation = 'http://localhost:8080/image/basic-profile-img.png';
+        let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);
         let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
         if (!result_user) return res.status(500).json({ ok: false, message: "cannot insert user data" });
         var accessToken;
         try {
-            await req.app.db.collection('family').updateOne({ code: req.body.code }, { $push: { user: { $each: [{ userId: result_user.insertedId, userName: req.body.userName, role: req.body.familyRole, profileImg: fileLocation, pushToken : req.body.pushToken }] } } });
+            const replacedString = (fileLocation).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
+            await req.app.db.collection('family').updateOne({ code: req.body.code }, { $push: { user: { $each: [{ userId: result_user.insertedId, userName: req.body.userName, role: req.body.familyRole, profileImg: replacedString, pushToken : req.body.pushToken }] } } });
             await req.app.db.collection('user').updateOne({ userName: req.body.userName, signDate: dateToday }, { $set: { familyId: result_find._id } });
             await req.app.db.collection('family').updateOne({ _id : result_find._id }, { $inc : {familyCount : 1}});
             accessToken = req.app.TokenUtils.makeToken({ id: String(result_user.insertedId) });
@@ -139,7 +166,6 @@ router.post('/userInformation', async (req, res) => {
     // 1. req.body.userId => 사용해서 user 정보 조회하기.
     if(!(req.body.userId)) return res.status(500).json({ok: false, message: 'check your body again'});
     let result_find = await req.app.db.collection('user').findOne({ _id : new ObjectId(req.body.userId) }); //String에서 Objectf로 형변환
-    console.log(result_find);
     // 2. 조회한 data가 있으면 json형식으로 데이터 보내주기.
     if(result_find){
         return res.status(200).send({ok: true, userInformation: result_find});

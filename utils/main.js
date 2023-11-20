@@ -4,9 +4,9 @@ const { ObjectId } = require('mongodb');
 const router = express.Router();
 // const path = require('path');
 
-router.get('/index', (req, res) => {
+// router.get('/index', (req, res) => {
 
-});
+// });
 
 router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
@@ -41,7 +41,14 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 });
 
 // DB에 저장된 알림을 내려주기.
-router.get('/notice', (req, res) => { // 유저의 알림 내역 응답
+router.get('/notice', async (req, res) => { // 유저의 알림 내역 응답
+    let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+    let result_noti = await req.app.db.collection('notification').find({ receiverId : new ObjectId(loginStatus.id) }).toArray();
+	for(const noti of result_noti) {
+		delete noti.receiverId;
+		delete noti._id;
+	}
+	res.status(200).json({ok: true, data: result_noti});
     
 });
 
