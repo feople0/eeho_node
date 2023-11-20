@@ -19,7 +19,7 @@ const upload = multer({
         s3: s3,
         bucket: 'eehoforum',
         key: function (req, file, cb) {
-            ext = path.extname(file.originalname);
+            var ext = path.extname(file.originalname);
             console.log("ext : " + ext);
             // if(ext !== '.png' && ext !== '.JPG' && ext !== '.jpg') {
             //     return callback(new Error('PNG, JPG만 업로드하세요'))
@@ -52,7 +52,7 @@ router.post('/member/login', async (req, res) => { // (가족이름, 사용자�
 router.post('/create', upload.single("profile"), async (req, res) => { // (가족이름, 사용자이름, 구성역할, 이미지) (familyName, userName, familyRole, profile)
     let dateToday = new Date();
     
-    let fileLocation = 'https://eehoforum.s3.ap-northeast-2.amazonaws.com/basic-profile-img.png';
+    let fileLocation = 'http://localhost:8080/image/basic-profile-img.png';
     if (req.file) fileLocation = (req.file.location);
     if (!(req.body.userName && req.body.pushToken && req.body.familyName && req.body.familyRole)) return res.status(500).json({ ok: false, message: 'check your body, userName, pushToken, familyName, and familyRole' });
     let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
@@ -95,7 +95,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     if(result_find) {
         if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "더이상 사용할 수 없음. 다섯명 넘어버림 ㅋ" });
         let dateToday = new Date();
-        let fileLocation = 'https://eehoforum.s3.ap-northeast-2.amazonaws.com/basic-profile-img.png';
+        let fileLocation = 'http://localhost:8080/image/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);
         let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
         if (!result_user) return res.status(500).json({ ok: false, message: "cannot insert user data" });

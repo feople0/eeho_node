@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path'); // path 모듈 추가
+require('dotenv').config();
 
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
@@ -86,7 +88,8 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
 
     if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 없음 . 잘못 됨.' });
     try {
-        await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : req.file.location, date : dateString });
+        const replacedString = (req.file.location).replace(process.env.AWS_Link, 'http://localhost:8080/image/');
+        await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : replacedString, date : dateString });
         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     } catch (error) {
         return res.status(500).json({ ok: false, message: "internal server error", error : error });
