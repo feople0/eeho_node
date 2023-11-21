@@ -25,7 +25,11 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     for (let i = 0; i < receiver.length; i++) {
         const foundData = (result_find.user).find(item => item.userId.toString() === (receiver[i]).toString());
         if(foundData) {
-            await req.app.db.collection('EEHO_req').insertOne({ req_date: new Date(), senderId : new ObjectId(loginStatus.id), receiverId : { userId : foundData.userId, userName : foundData.userName }, familyId : result_user.familyId, isCompleted : false });
+            await req.app.db.collection('EEHO_req').insertOne({
+                req_date: new Date(), senderId: new ObjectId(loginStatus.id),
+                receiverId: { userId: foundData.userId, userName: foundData.userName },
+                familyId: result_user.familyId, isCompleted: false
+            });
             pushReceiver.push(foundData.userId);
             if (foundData.pushToken) somePushTokens.push(foundData.pushToken);
         } else {
@@ -34,7 +38,9 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     }
 
     // 2. 푸시 알람 발송
+    let user = ((result_find.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
     var pushText = `${result_user.userName}님이 에호 요청을 보냈습니다.`;
+    if((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString()) pushText = `${user.role}님이 에호 요청을 보냈습니다.`;
     req.app.notificationUtils(somePushTokens, pushText, { from: new ObjectId(loginStatus.id) }); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 
     // 3. DB 저장.

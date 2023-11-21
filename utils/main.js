@@ -30,7 +30,11 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 
 	// 가져온 user data의 familyId 사용해서 eeho_req의 data 가져오기 (isComplete : false, familyId, receiverId);
 	try {
-		let result_req = await req.app.db.collection('EEHO_req').find({ isCompleted: false, "receiverId.userId" : new ObjectId(loginStatus.id), familyId: result_user.familyId }).toArray();
+		let result_req = await req.app.db.collection('EEHO_req').find({
+			isCompleted: false,
+			"receiverId.userId": new ObjectId(loginStatus.id),
+			familyId: result_user.familyId
+		}).toArray();
 		res.status(200).json({ ok: true, data: result_req });
 	} catch (error) {
         res.status(500).json({ ok: false, message: 'internal sever error', error: error });

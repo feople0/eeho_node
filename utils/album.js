@@ -97,7 +97,6 @@ router.get('/delete/:id', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     let result;
     if(loginStatus.id) result = await req.app.db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), senderId : new ObjectId(loginStatus.id) });
-    // 응답.status(400).json({ message : '삭제 실패'});
 
     if(result.deletedCount == 1) {
         return res.status(200).json({ ok: true, id: req.params.id });
@@ -134,7 +133,14 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 전송에 실패했습니다. 다시 시도해주세요.' });
     try {
         const replacedString = (req.file.location).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
-        await req.app.db.collection('EEHO').insertOne({ _id : count.totalPost, senderId : new ObjectId(loginStatus.id), receiverId : foundData, familyId : result_user.familyId, img : replacedString, date : dateString });
+        await req.app.db.collection('EEHO').insertOne({
+            _id: count.totalPost,
+            senderId: new ObjectId(loginStatus.id),
+            receiverId: foundData,
+            familyId: result_user.familyId,
+            img: replacedString,
+            date: dateString
+        });
         await req.app.db.collection('counter').updateOne({ name : 'count_eeho' }, { $inc : {totalPost : 1}});
     } catch (error) {
         return res.status(500).json({ ok: false, message: "internal server error", error : error });
@@ -143,7 +149,12 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     // 2. 에호_리퀘스트 true 로 변경 // senderId : foundData[i].userId, isCompleted : false, receiverId.userId : loginStatus.id, familyId : result_user.familyId
     let response_data = [];
     for(let i=0; i<foundData.length; i++) {
-        let result_isComplete = await req.app.db.collection('EEHO_req').findOne({ senderId : foundData[i].userId, isCompleted : false, 'receiverId.userId' : new ObjectId(loginStatus.id), familyId : result_user.familyId })
+        let result_isComplete = await req.app.db.collection('EEHO_req').findOne({
+            senderId: foundData[i].userId,
+            isCompleted: false,
+            'receiverId.userId': new ObjectId(loginStatus.id),
+            familyId: result_user.familyId
+        })
         if(result_isComplete) {
             let result_update = await req.app.db.collection('EEHO_req').updateOne({ _id : result_isComplete._id }, { $set : { isCompleted : true } });
             if(!(result_update.modifiedCount)) return res.status(500).json({ ok: false, message: "cannot update DB" });
@@ -159,7 +170,9 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
         if (foundData[i].pushToken) somePushTokens.push(foundData[i].pushToken);
     }
     
+    let user = ((result_find.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
     var pushText = `${result_user.userName}님의 에호 사진이 도착했습니다.`;
+    if((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString()) pushText = `${user.role}님의 에호 사진이 도착했습니다.`;
     req.app.notificationUtils(somePushTokens, pushText); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 
     // 3. DB 저장.
