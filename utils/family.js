@@ -46,7 +46,7 @@ router.post('/member/login', async (req, res) => { // (가족이름, 사용자�
 router.post('/create', upload.single("profile"), async (req, res) => { // (가족이름, 사용자이름, 구성역할, 이미지, 푸시토큰) (familyName, userName, familyRole, profile, pushToken)
     let dateToday = new Date();
     let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
-    if (req.file.location) fileLocation = (req.file.location);
+    if (req.file) fileLocation = (req.file.location);
     if (!(req.body.userName && req.body.familyName && req.body.familyRole)) return res.status(400).json({ ok: false, message: 'check your body' });
     let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
     
@@ -85,7 +85,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
         if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
         let dateToday = new Date();
         let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
-        if(req.file.location) fileLocation = (req.file.location);
+        if(req.file) fileLocation = (req.file.location);
         let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken, familyId: result_find._id });
         if (!result_user) return res.status(500).json({ ok: false, message: "cannot insert user data" });
         try {
