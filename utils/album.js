@@ -26,12 +26,12 @@ const upload = multer({
             cb(null, dateString);
         },
         resize: {
-            width: 100,
+            width: 200,
             withoutEnlargement: true
         },
         max: true, // 비율 유지
         format: 'jpeg', // 변경할 이미지 포맷
-        quality: 90 // 이미지 품질
+        quality: 50 // 이미지 품질
     })
 });
   
@@ -67,13 +67,15 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     }
     foundData.splice(a, 1);
 
-    let result = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).toArray();
-    let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).toArray();
+    let result = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).sort({ _id: -1 }).toArray();
+    console.log(result);
+    let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).sort({ _id: -1 }).toArray();
     for(let i=0; i<res1.length; i++) {
-        let index = 0;
-        while(index < result.length && result[index]._id < res1[i]._id) index++;
+        let index = result.length - 1;
+        while(index >= 0 && result[index]._id < res1[i]._id) index--;
         result.splice(index, 0, res1[i]);
     }
+    console.log(result);
 
     const userIdMap = new Map();
     for(let i=0; i<foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
@@ -90,7 +92,7 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
         foundData[index].photo.push(res.img);
     }
     
-    for (let i = 0; i < foundData.length; i++) foundData[i].photo.reverse();
+    // for (let i = 0; i < foundData.length; i++) foundData[i].photo.reverse();
 
     res.status(200).json({ ok: true, data: foundData });
 
