@@ -26,7 +26,7 @@ const upload = multer({
             cb(null, dateString);
         },
         resize: {
-            width: 800,
+            width: 100,
             withoutEnlargement: true
         },
         max: true, // 비율 유지
