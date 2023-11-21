@@ -44,6 +44,7 @@ router.post('/member/login', async (req, res) => { // (가족이름, 사용자�
 });
 
 router.post('/create', upload.single("profile"), async (req, res) => { // (가족이름, 사용자이름, 구성역할, 이미지, 푸시토큰) (familyName, userName, role, profile, pushToken)
+    console.log('create 접근');
     let dateToday = new Date();
     let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
     if (req.file) fileLocation = (req.file.location);

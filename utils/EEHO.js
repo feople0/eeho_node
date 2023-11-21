@@ -40,7 +40,7 @@ router.post('/request', async (req, res) => { // ?member = 유저아이디
     // 2. 푸시 알람 발송
     let user = ((result_find.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
     var pushText = `${result_user.userName}님이 에호 요청을 보냈습니다.`;
-    if((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString()) pushText = `${user.role}님이 에호 요청을 보냈습니다.`;
+    if(user.role) if((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString()) pushText = `${user.role}님이 에호 요청을 보냈습니다.`;
     req.app.notificationUtils(somePushTokens, pushText, { from: new ObjectId(loginStatus.id) }); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 
     // 3. DB 저장.
