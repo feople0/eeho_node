@@ -55,7 +55,7 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
             continue;
         }
         delete foundData[i].role;
-        delete foundData[i].profileImg;
+        // delete foundData[i].profileImg;
         delete foundData[i].pushToken;
         foundData[i].photo = [];
     }
@@ -114,7 +114,8 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     let receiver = (req.body.receiverIds);
     if (!receiver) return res.status(400).json({ ok: false, message: "user ID is required" });
     receiver = JSON.parse(receiver);
-    
+    console.log(receiver);
+    console.log(receiver.length);
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if(!loginStatus) return res.status(400).json({ ok: false, message: "Access Token is necessary" });
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
@@ -123,8 +124,17 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     if(!result_find) return res.status(500).json({ ok: false, message: "cannot find family" });
 
     const foundData = [];
-    for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
+    // for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
+    for (let i = 0; i < receiver.length; i++) {
+        for (const data of result_find.user) {
+            if (receiver[i].toString() === data.userId.toString()) {
+                foundData.push(data);
+                break;
+            }
+        }
+    }
     
+    if (foundData.length === 0) return res.status(500).json({ ok: false, message: '사진 전송에 실패했습니다. 보낼 가족을 선택해주세요.' });
     for(let i=0; i<foundData.length; i++) {
         delete foundData[i].role;
         delete foundData[i].profileImg;

@@ -66,7 +66,7 @@ router.post('/create', upload.single("profile"), async (req, res) => { // (가�
         await req.app.db.collection('family').updateOne({ _id: result_insert.insertedId }, { $set: { code: familyCode } });
         
         const accessToken = req.app.TokenUtils.makeToken({ id: String(result_user.insertedId) });
-        return res.status(200).json({ ok : true, code : familyCode, token : accessToken });
+        return res.status(200).json({ ok : true, id: result_user.insertedId, code : familyCode, token : accessToken });
     } catch (error) {
         return res.status(500).json({ ok: false, message: 'internal sever error', error: error });
     }
@@ -85,6 +85,7 @@ router.post('/code/isExisted', async (req, res) => { // (코드) (code)
 router.post('/participate', upload.single("profile"), async (req, res) => { // (코드, 사용자이름, 구성역할, 이미지, 푸시토큰) (code, userName, role, profile, pushToken)
     if (!(req.body.code && req.body.userName && req.body.role)) return res.status(400).json({ ok: false, message: 'check your body again' });
     let result_find = await req.app.db.collection('family').findOne({ code: req.body.code });
+    
     if(result_find) {
         if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
         let dateToday = new Date();
@@ -107,12 +108,12 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
                             userName: req.body.userName,
                             role: req.body.role,
                             profileImg: replacedString,
-                            pushToken: req.body.pushToken,
-                            familyCount: result_find.familyCount + 1
+                            pushToken: req.body.pushToken
                         }]
                     }
                 }
             });
+            await req.app.db.collection('family').updateOne({ code: req.body.code }, { $inc : {familyCount : 1}});
             // return res.status(200).json({ ok : true, token : accessToken, familyName : result_find.familyName, profileImg : fileLocation });
         } catch(error) {
             return res.status(500).json({ ok: false, message: 'internal sever error', error: error });
@@ -135,7 +136,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
                 await req.app.db.collection('notification').insertOne({ date : new Date(), receiverId : receiver, text : pushText });
             }
             const accessToken = req.app.TokenUtils.makeToken({ id: String(result_user.insertedId) });
-            return res.status(200).json({ ok : true, token : accessToken, familyName : result_find.familyName, profileImg : fileLocation });
+            return res.status(200).json({ ok : true, id: result_user.insertedId, token : accessToken, familyName : result_find.familyName, profileImg : fileLocation });
         } catch (error) {
             return res.status(500).json({ ok: false, message: "notification internal server error", error : error });
         }
