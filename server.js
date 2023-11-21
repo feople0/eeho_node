@@ -10,7 +10,7 @@ app.notificationUtils = notificationUtils;
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
 app.use(cors({
-    origin: process.env.Domain_Link, // 모든 출처 허용 옵션. true 를 써도 된다.
+    origin: "*", // 모든 출처 허용 옵션. true 를 써도 된다.
     credentials: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
 }));
 
