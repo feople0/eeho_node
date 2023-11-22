@@ -28,11 +28,14 @@ const upload = multer({
 
 router.get('/profile', async (req, res) => { // (개인 프로필 조회)
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+    if (!loginStatus)
+        return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
-    if (!result_user) return res.status(400).json({ ok: false, message: 'cannot find user' });
+    if (!result_user)
+        return res.status(400).json({ ok: false, message: 'cannot find user' });
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
-    if (!result_user) return res.status(400).json({ ok: false, message: 'cannot find family' });
+    if (!result_user)
+        return res.status(400).json({ ok: false, message: 'cannot find family' });
     let user = ((result_find.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
     try {
         if(!user) throw new SyntaxError("불완전한 데이터: 유저를 찾을 수 없음.");
@@ -52,10 +55,12 @@ router.get('/profile', async (req, res) => { // (개인 프로필 조회)
 // post -> body { userId: "123" }
 router.post('/user/info', async (req, res) => { // body : userId
     // 1. req.body.userId => 사용해서 user 정보 조회하기.
-    if(!(req.body.userId)) return res.status(400).json({ok: false, message: 'check your body again'});
+    if (!(req.body.userId))
+        return res.status(400).json({ ok: false, message: 'check your body again' });
     let result_find = await req.app.db.collection('user').findOne({ _id : new ObjectId(req.body.userId) }); //String에서 ObjectId로 형변환
     // 2. 조회한 data가 있으면 json형식으로 데이터 보내주기.
-    if (result_find) return res.status(200).json({ ok: true, userInformation: result_find });
+    if (result_find)
+        return res.status(200).json({ ok: true, userInformation: result_find });
     return res.status(400).json({ ok: false, message: 'cannot find user'});
     // 3. error handling.
 
@@ -63,7 +68,8 @@ router.post('/user/info', async (req, res) => { // body : userId
 
 router.post('/account/update', upload.single('profileImg'), async (req, res) => { // userName, role, profileImg, familyName
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+    if (!loginStatus)
+        return res.status(400).json({ ok: false, message: 'accessToken is required' });
     let result_find = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) }); //String에서 ObjectId로 형변환
      
     try {
@@ -73,7 +79,11 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
         let filePath = user.profileImg;
         if (req.file) filePath = req.file.location;
         
-        await req.app.db.collection('user').updateOne({ _id: new ObjectId(loginStatus.id) }, { $set: { userName: req.body.userName } });
+        await req.app.db.collection('user').updateOne({ _id: new ObjectId(loginStatus.id) }, {
+            $set: {
+                userName: req.body.userName
+            }
+        });
         await req.app.db.collection('family').updateOne({ _id: (result_find.familyId) }, {
             $set: {
                 "user.$[elem].userName": req.body.userName,
@@ -83,7 +93,7 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
             }
         }, { arrayFilters: [{ "elem.userId": new ObjectId(loginStatus.id) }] });
         
-        res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true });
     } catch (err) {
         return res.status(500).json({ ok: false, message: 'internal server error', error: err });
     }
@@ -91,24 +101,39 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
 
 router.get('/account/delete', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+    if (!loginStatus)
+        return res.status(400).json({ ok: false, message: 'accessToken is required' });
     let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
-    if (!result_user) return res.status(500).json({ ok: false, message: 'cannot find user' });
+    if (!result_user)
+        return res.status(500).json({ ok: false, message: 'cannot find user' });
     let result_family = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
-    if (!result_family) return res.status(500).json({ ok: false, message: 'cannot find family' });
+    if (!result_family)
+        return res.status(500).json({ ok: false, message: 'cannot find family' });
 
-    if ((result_family.familyCount) <= 1) req.app.db.collection('family').deleteOne({ _id: result_user.familyId });
+    if ((result_family.familyCount) <= 1)
+        req.app.db.collection('family').deleteOne({ _id: result_user.familyId });
     else {
-        await req.app.db.collection('family').findOneAndUpdate({ _id: result_user.familyId }, { $pull: { user: { userId: new ObjectId(loginStatus.id) } } });
-        await req.app.db.collection('family').updateOne({ _id: result_user.familyId }, { $inc: { familyCount: -1 } });
+        await req.app.db.collection('family').findOneAndUpdate({ _id: result_user.familyId }, {
+            $pull: {
+                user: {
+                    userId: new ObjectId(loginStatus.id)
+                }
+            }
+        });
+        await req.app.db.collection('family').updateOne({ _id: result_user.familyId }, {
+            $inc: {
+                familyCount: -1
+            }
+        });
     }
     try {
         await req.app.db.collection('user').deleteOne({ _id: new ObjectId(loginStatus.id) });
         await req.app.db.collection('EEHO').deleteMany({ senderId: result_user._id });
         
-        res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true });
     } catch (err) {
-        if (!result_family) return res.status(500).json({ ok: false, message: 'internal server error', error: err });
+        if (!result_family)
+            return res.status(500).json({ ok: false, message: 'internal server error', error: err });
     }
 });
 

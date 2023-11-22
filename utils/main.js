@@ -11,14 +11,18 @@ const router = express.Router();
 router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 	console.log('/main/members');
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+	if (!loginStatus)
+		return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
-    if(!result_user) return res.status(400).json({ ok: false, message: 'cannot find user' });
+	if (!result_user)
+		return res.status(400).json({ ok: false, message: 'cannot find user' });
 
 	let result_find;
-	if(result_user.familyId) result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
-	if (!result_find) res.status(400).json({ ok: false, message: 'cannot find family' });
-	console.log(req);
+	if (result_user.familyId)
+		result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
+	if (!result_find)
+		return res.status(400).json({ ok: false, message: 'cannot find family' });
+	
 	const foundData = result_find.user;
 	if (req.query.exceptMe) {
 		var a;
@@ -75,7 +79,9 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 router.get('/notice', async (req, res) => { // 유저의 알림 내역 응답
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
-    let result_noti = await req.app.db.collection('notification').find({ receiverId : new ObjectId(loginStatus.id) }).toArray();
+	let result_noti = await req.app.db.collection('notification').find({
+		receiverId: new ObjectId(loginStatus.id)
+	}).toArray();
 	for(const noti of result_noti) {
 		delete noti.receiverId;
 		delete noti._id;
