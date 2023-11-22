@@ -10,6 +10,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+.gcloudignore
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -85,7 +86,6 @@ web_modules/
 .env.local
 eeho-b890d-firebase-adminsdk-y9zsw-dcd506d9a1.json
 app.yaml
-.gcloudignore
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
