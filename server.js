@@ -3,16 +3,23 @@ const app = express();
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const TokenUtils = require('./utils/tokenUtils');
-app.TokenUtils = TokenUtils;
 const notificationUtils = require('./utils/notificationUtil.js');
+app.TokenUtils = TokenUtils;
 app.notificationUtils = notificationUtils;
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
 app.use(cors({
-    origin: "*", // 모든 출처 허용 옵션. true 를 써도 된다.
-    credentials: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
+    origin: [
+        "https://eeho-web.vercel.app",
+        "http://localhost:3000",
+        "http://172.16.231.51:3000"
+    ], // 모든 출처 허용 옵션. true 를 써도 된다.
+    methods: ["GET", "POST", "OPTIONS"]
 }));
+
+// env 파일 연결.
+require('dotenv').config();
 
 // mongoDB 연결
 let db;
@@ -25,9 +32,6 @@ new MongoClient(url).connect().then( (client) => {
 }).catch((err)=>{
     console.log(err);
 });
-
-// env 파일 연결.
-require('dotenv').config();
 
 function checkLogin(req, res, next) {
     let loginStatus = TokenUtils.verify(req.headers.token);

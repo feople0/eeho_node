@@ -38,7 +38,8 @@ const upload = multer({
 // 유저가 속한 가족의 모든 이미지를 가져오기
 router.get('/index', async (req, res) => { // (사진 전체 응답) // calender, member 별 보관함에 사용
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
+    if (!loginStatus)
+        return res.status(500).json({ ok: false, message: "AccessToken is required" });
     let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
     let res1 = await req.app.db.collection('EEHO').find({ familyId : result_user.familyId }).toArray();
     return res.status(200).json({ ok: true, photos: res1 });
@@ -47,7 +48,8 @@ router.get('/index', async (req, res) => { // (사진 전체 응답) // calender
 router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     // 1. 토큰 사용해서 user data 조회하기
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if (!loginStatus) return res.status(500).json({ ok: false, message: "AccessToken is required" });
+    if (!loginStatus)
+        return res.status(500).json({ ok: false, message: "AccessToken is required" });
     let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
 
     // 2. user data 사용해서, family member 조회하기 // userId, role, userName, profileImg, pushToken -> token, name, role 지우고 photos:[] 추가.
@@ -67,34 +69,41 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     }
     foundData.splice(a, 1);
 
-    let result = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id)) }).sort({ _id: -1 }).toArray();
-    console.log(result);
-    let res1 = await req.app.db.collection('EEHO').find({ familyId: result_user.familyId, "receiverId.userId" : (new ObjectId(loginStatus.id)) }).sort({ _id: -1 }).toArray();
+    let result = await req.app.db.collection('EEHO').find({
+        familyId: result_user.familyId, senderId: (new ObjectId(loginStatus.id))
+    }).sort({ _id: -1 }).toArray();
+    
+    let res1 = await req.app.db.collection('EEHO').find({
+        familyId: result_user.familyId, "receiverId.userId": (new ObjectId(loginStatus.id))
+    }).sort({ _id: -1 }).toArray();
+    
     for(let i=0; i<res1.length; i++) {
-        let index = result.length - 1;
-        while(index >= 0 && result[index]._id < res1[i]._id) index--;
+        let index = 0;
+        while (index < result.length && result[index]._id > res1[i]._id) index++;
         result.splice(index, 0, res1[i]);
     }
-    console.log(result);
 
     const userIdMap = new Map();
-    for(let i=0; i<foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
+    for (let i = 0; i < foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
     
-    for(const res of result) {
-        if((res.senderId.toString()) === (loginStatus.id.toString())) {
-            for(let i=0; i<res.receiverId.length; i++) {
+    console.log('result\n', result);
+    console.log('foundData\n', foundData);
+    for (const res of result) {
+        if ((res.senderId.toString()) === (loginStatus.id.toString())) {
+            for (let i = 0; i < res.receiverId.length; i++) {
                 var index = userIdMap.get(res.receiverId[i].userId.toString());
-                (foundData[index].photo).push(res.img);
+                if (index) (foundData[index].photo).push(res.img);
             }
             continue;
         }
         var index = userIdMap.get(res.senderId.toString());
-        foundData[index].photo.push(res.img);
+        console.log('index2\n', index);
+        if (index) foundData[index].photo.push(res.img);
     }
     
     // for (let i = 0; i < foundData.length; i++) foundData[i].photo.reverse();
 
-    res.status(200).json({ ok: true, data: foundData });
+    return res.status(200).json({ ok: true, data: foundData });
 
 });
 
@@ -106,7 +115,10 @@ router.get('/:id', async (req, res) => {
 router.get('/delete/:id', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     let result;
-    if(loginStatus.id) result = await req.app.db.collection('EEHO').deleteOne({ _id : parseInt(req.params.id), senderId : new ObjectId(loginStatus.id) });
+    if (loginStatus.id)
+        result = await req.app.db.collection('EEHO').deleteOne({
+            _id: parseInt(req.params.id), senderId: new ObjectId(loginStatus.id)
+        });
 
     if(result.deletedCount == 1) {
         return res.status(200).json({ ok: true, id: req.params.id });
@@ -122,16 +134,19 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     let count = await req.app.db.collection('counter').findOne({ name : 'count_eeho' });
 
     let receiver = (req.body.receiverIds);
-    if (!receiver) return res.status(400).json({ ok: false, message: "user ID is required" });
+    if (!receiver)
+        return res.status(400).json({ ok: false, message: "user ID is required" });
     receiver = JSON.parse(receiver);
-    console.log(receiver);
-    console.log(receiver.length);
+    
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: "Access Token is necessary" });
+    if (!loginStatus)
+        return res.status(400).json({ ok: false, message: "Access Token is necessary" });
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
-    if(!result_user) return res.status(500).json({ ok: false, message: "cannot find user" });
+    if (!result_user)
+        return res.status(500).json({ ok: false, message: "cannot find user" });
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
-    if(!result_find) return res.status(500).json({ ok: false, message: "cannot find family" });
+    if (!result_find)
+        return res.status(500).json({ ok: false, message: "cannot find family" });
 
     const foundData = [];
     // for (let i = 0; i < receiver.length; i++) foundData.push((result_find.user).find(item => (item.userId.toString() === (receiver[i]).toString())));
@@ -144,13 +159,15 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
         }
     }
     
-    if (foundData.length === 0) return res.status(500).json({ ok: false, message: '사진 전송에 실패했습니다. 보낼 가족을 선택해주세요.' });
-    for(let i=0; i<foundData.length; i++) {
+    if (foundData.length === 0)
+        return res.status(500).json({ ok: false, message: '사진 전송에 실패했습니다. 보낼 가족을 선택해주세요.' });
+    for (let i = 0; i < foundData.length; i++) {
         delete foundData[i].role;
         delete foundData[i].profileImg;
     }
 
-    if (req.file.length === 0) return res.status(500).json({ ok: false, message: '사진이 전송에 실패했습니다. 다시 시도해주세요.' });
+    if (req.file.length === 0)
+        return res.status(500).json({ ok: false, message: '사진이 전송에 실패했습니다. 다시 시도해주세요.' });
     try {
         const replacedString = (req.file.Location).replace(process.env.AWS_Link, process.env.Domain_Link + '/image/');
         await req.app.db.collection('EEHO').insertOne({
@@ -176,9 +193,14 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
             familyId: result_user.familyId
         })
         if(result_isComplete) {
-            let result_update = await req.app.db.collection('EEHO_req').updateOne({ _id : result_isComplete._id }, { $set : { isCompleted : true } });
-            if(!(result_update.modifiedCount)) return res.status(500).json({ ok: false, message: "cannot update DB" });
-            else response_data.push(result_isComplete.senderId);
+            let result_update = await req.app.db.collection('EEHO_req').updateOne({
+                _id: result_isComplete._id
+            }, {
+                $set: { isCompleted: true }
+            });
+            if (!(result_update.modifiedCount))
+                return res.status(500).json({ ok: false, message: "cannot update DB" });
+            response_data.push(result_isComplete.senderId);
         }
     }
     
@@ -187,19 +209,27 @@ router.post('/upload', upload.single("profile"), async (req, res) => { // (이�
     const pushReceiver = [];
     for (let i = 0; i < foundData.length; i++) {
         pushReceiver.push(foundData[i].userId);
-        if (foundData[i].pushToken) somePushTokens.push(foundData[i].pushToken);
+        if (foundData[i].pushToken)
+            somePushTokens.push(foundData[i].pushToken);
     }
     
     let user = ((result_find.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
     var pushText = `${result_user.userName}님의 에호 사진이 도착했습니다.`;
-    console.log(user);
-    if(user.role) if((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString()) pushText = `${user.role}님의 에호 사진이 도착했습니다.`;
+    
+    if (user.role)
+        if ((user.role).toString() === ('아빠').toString() || (user.role).toString() === ('엄마').toString())
+            pushText = `${user.role}님의 에호 사진이 도착했습니다.`;
     req.app.notificationUtils(somePushTokens, pushText); // senderId를 넣었다 쳐. 사람 별로 조회가 왜 없어
 
     // 3. DB 저장.
     // id, date, body, senderId, text
     try {
-        for(const receiver of pushReceiver) await req.app.db.collection('notification').insertOne({ date : new Date(), receiverId : receiver, text : pushText });
+        for (const receiver of pushReceiver)
+            await req.app.db.collection('notification').insertOne({
+                date: new Date(),
+                receiverId: receiver,
+                text: pushText
+            });
         return res.status(200).json({ ok: true, change: response_data });
     } catch (error) {
         return res.status(500).json({ ok: false, message: "internal server error", error : error });
