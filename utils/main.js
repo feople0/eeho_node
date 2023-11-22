@@ -9,7 +9,6 @@ const router = express.Router();
 // });
 
 router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
-	console.log('/main/members');
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
 	if (!loginStatus)
 		return res.status(400).json({ ok: false, message: 'accessToken is required' });
@@ -40,7 +39,8 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 // DB에 저장된 가족 코드를 내려주기.
 router.get('/get/token', async (req, res) => { // 유저의 알림 내역 응답
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+	if (!loginStatus)
+		return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
 	let result_family = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
 	
@@ -50,25 +50,20 @@ router.get('/get/token', async (req, res) => { // 유저의 알림 내역 응답
 
 router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전달
 	// token 사용해서 user 식별 및 data 가져오기
-	console.log('iscomplete 호출');
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-	if (!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
-	console.log(loginStatus);
+	if (!loginStatus)
+		return res.status(400).json({ ok: false, message: 'accessToken is required' });
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
-	if (!result_user) return res.status(400).json({ ok: false, message: 'cannot find user data' });
-	console.log(result_user);
+	if (!result_user)
+		return res.status(400).json({ ok: false, message: 'cannot find user data' });
 
 	// 가져온 user data의 familyId 사용해서 eeho_req의 data 가져오기 (isComplete : false, familyId, receiverId);
 	try {
-		console.log("trycatch");
-		console.log(loginStatus.id);
-		console.log(result_user.familyId);
 		let result_req = await req.app.db.collection('EEHO_req').find({
 			isCompleted: false,
 			"receiverId.userId": new ObjectId(loginStatus.id),
 			familyId: result_user.familyId
 		}).toArray();
-		console.log(result_req);
 		return res.status(200).json({ ok: true, data: result_req });
 	} catch (error) {
         return res.status(500).json({ ok: false, message: 'internal sever error', error: error });
@@ -78,7 +73,8 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 // DB에 저장된 알림을 내려주기.
 router.get('/notice', async (req, res) => { // 유저의 알림 내역 응답
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
+	if (!loginStatus)
+		return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	let result_noti = await req.app.db.collection('notification').find({
 		receiverId: new ObjectId(loginStatus.id)
 	}).toArray();
@@ -86,7 +82,7 @@ router.get('/notice', async (req, res) => { // 유저의 알림 내역 응답
 		delete noti.receiverId;
 		delete noti._id;
 	}
-	res.status(200).json({ok: true, data: result_noti});
+	return res.status(200).json({ ok: true, data: result_noti });
     
 });
 

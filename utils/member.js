@@ -88,8 +88,7 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
             $set: {
                 "user.$[elem].userName": req.body.userName,
                 "user.$[elem].role": req.body.role,
-                "user.$[elem].profileImg": filePath,
-                familyName: req.body.familyName
+                "user.$[elem].profileImg": filePath
             }
         }, { arrayFilters: [{ "elem.userId": new ObjectId(loginStatus.id) }] });
         
