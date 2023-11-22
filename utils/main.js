@@ -9,6 +9,7 @@ const router = express.Router();
 // });
 
 router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
+	console.log('/main/members');
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if(!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
@@ -17,7 +18,7 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 	let result_find;
 	if(result_user.familyId) result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
 	if (!result_find) res.status(400).json({ ok: false, message: 'cannot find family' });
-	
+	console.log(req);
 	const foundData = result_find.user;
 	if (req.query.exceptMe) {
 		var a;
@@ -29,7 +30,7 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 		}
 		foundData.splice(a, 1);
 	}
-	res.status(200).json({ ok : true, data: foundData });
+	res.status(200).json({ ok : true, members: foundData, familyName: result_find.familyName });
 });
 
 // DB에 저장된 가족 코드를 내려주기.
@@ -50,7 +51,7 @@ router.get('/isCompleted', async (req, res) => { // 미응답된 리스트 전�
 	if (!loginStatus) return res.status(400).json({ ok: false, message: 'accessToken is required' });
 	console.log(loginStatus);
     let result_user = await req.app.db.collection('user').findOne({ _id : new ObjectId(loginStatus.id) });
-	if (!result_user) res.status(400).json({ ok: false, message: 'cannot find user data' });
+	if (!result_user) return res.status(400).json({ ok: false, message: 'cannot find user data' });
 	console.log(result_user);
 
 	// 가져온 user data의 familyId 사용해서 eeho_req의 data 가져오기 (isComplete : false, familyId, receiverId);

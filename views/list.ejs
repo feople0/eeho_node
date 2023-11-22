@@ -8,22 +8,22 @@
     <script src="//developers.kakao.com/sdk/js/kakao.min.js"></script>
 </head>
 <body class="grey-bg">
-  <%= posts.length %>
+  
   <div class="white-bg">
-    <% for(let i=0; i<posts.length; i++) { %>
-    <div class="list-box" id="<%= posts[i]._id %>">
-      <div class="image-container">
-        <img src="<%= posts[i].profileImg %>">
-        <h4><%= posts[i].username %></h4>
+    
+    <div class="list-box" id=""></div>
+      <div class="image-container"></div>">
+        <img src="">
+        <h4>
       </div>
     </div>
-    <% } %>
+    
   </div> 
   <img src="ko/add-friend.png" onclick="myFunction()" style="width: 100px; height: auto; cursor: pointer;">
   <a class="nav-link" href="/logout">Log Out</a>
   <a class="nav-link" href="#" id="uploadButton">upload</a>
   
-  <input type="hidden" id="hiddenValue" value="<%= posts.code %>">
+  <input type="hidden" id="hiddenValue" value="">
 
   <script src="/apikey.js" content></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

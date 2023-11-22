@@ -48,6 +48,7 @@ router.post('/create', upload.single("profile"), async (req, res) => { // (가�
     let dateToday = new Date();
     let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
     if (req.file) fileLocation = (req.file.location);
+    console.log(req.body);
     if (!(req.body.userName && req.body.familyName && req.body.role)) return res.status(400).json({ ok: false, message: 'check your body' });
     let result_user = await req.app.db.collection('user').insertOne({ userName : req.body.userName, signDate : dateToday, pushToken : req.body.pushToken });
     
@@ -77,7 +78,7 @@ router.post('/code/isExisted', async (req, res) => { // (코드) (code)
     if (!req.body.code) return res.status(400).json({ ok: false, message: 'code is required' });
     let result_find = await req.app.db.collection('family').findOne({ code: req.body.code });
     if (result_find) {
-        if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
+        if (result_find.familyCount >= 5) return res.status(400).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
         return res.status(200).json({ ok: true });
     }
     else return res.status(500).json({ ok: false, message: 'wrong approach' });
@@ -88,7 +89,7 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     let result_find = await req.app.db.collection('family').findOne({ code: req.body.code });
     
     if(result_find) {
-        if (result_find.familyCount >= 5) return res.status(500).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
+        if (result_find.familyCount >= 5) return res.status(400).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
         let dateToday = new Date();
         let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);

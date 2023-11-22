@@ -10,9 +10,10 @@ app.notificationUtils = notificationUtils;
 app.use(express.json());
 app.use(express.urlencoded({extended:true})) ;
 app.use(cors({
-    origin: "*", // 모든 출처 허용 옵션. true 를 써도 된다.
-    credentials: true // 사용자 인증이 필요한 리소스(쿠키 ..등) 접근
+    origin: ["https://eeho-web.vercel.app", "http://localhost:3000", "http://172.16.231.51:3000"], // 모든 출처 허용 옵션. true 를 써도 된다.
+    methods: ["GET", "POST", "OPTIONS"]
 }));
+app.set('view engine', 'ejs');
 
 // mongoDB 연결
 let db;
@@ -58,6 +59,11 @@ app.get('/image/:imageName', (req, res) => {
     const s3ImageUrl = process.env.AWS_Link + imageName;
     res.redirect(s3ImageUrl);
 });
+
+app.get('/test', (req, res) => {
+    res.render('list.ejs');
+});
+
 
 
 
