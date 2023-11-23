@@ -6,7 +6,6 @@ const path = require('path');
 const { S3Client } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
-const { ObjectId } = require('mongodb');
 const s3 = new S3Client({
   region : 'ap-northeast-2',
   credentials : {
@@ -26,10 +25,10 @@ const upload = multer({
     })
 });
 
-router.post('/member/login', async (req, res) => { // (가족이름, 사용자이름) (familyName, userName)
-    if (!req.body.familyName)
-        return res.status(400).json({ ok: false, message: 'you should put your familyName' });
-    let result_family = await req.app.db.collection('family').findOne({ familyName : req.body.familyName });
+router.post('/member/login', async (req, res) => { // (가족코드, 사용자이름, 푸시토큰) (code, userName, pushToken)
+    if (!req.body.code)
+        return res.status(400).json({ ok: false, message: 'you should put your code' });
+    let result_family = await req.app.db.collection('family').findOne({ code : req.body.code });
     if(result_family) {
         if (!req.body.userName)
             return res.status(400).json({ ok: false, message: 'you should put your userName' });
@@ -37,9 +36,27 @@ router.post('/member/login', async (req, res) => { // (가족이름, 사용자�
             userName: req.body.userName,
             familyId: result_family._id
         });
+
+        if (req.body.pushToken) {
+            await req.app.db.collection('user').updateOne({ _id: result_find._id }, {
+                $set: { pushToken: req.body.pushToken }
+            });
+            await req.app.db.collection('family').updateOne({ code : req.body.code }, {
+                $set: { "user.$[elem].pushToken": req.body.pushToken }
+            }, { arrayFilters: [{ "elem.userId": result_find._id }] });
+        }
+
+        let dataMine = ((result_family.user).find(item => (item.userId.toString() === (result_find._id).toString())));
         if(result_find) {
             const accessToken = req.app.TokenUtils.makeToken({ id: String(result_find._id) });
-            return res.status(200).json({ ok: true, token : accessToken });
+            // return res.status(200).json({ ok: true, token : accessToken });
+            return res.status(200).json({
+                ok: true,
+                id: result_find._id,
+                token: accessToken,
+                familyName: result_family.familyName,
+                profileImg: dataMine.profileImg
+            });
         } else {
             return res.status(500).json({ ok: false, message: 'non-existent userName!!!' });
         }
@@ -104,15 +121,15 @@ router.post('/create', upload.single("profile"), async (req, res) => { // (가�
 
 router.post('/code/isExisted', async (req, res) => { // (코드) (code)
     if (!req.body.code)
-        return res.status(400).json({ ok: false, message: 'code is required' });
+        return res.status(400).json({ ok: false, message: 'no_data' });
     let result_find = await req.app.db.collection('family').findOne({ code: req.body.code });
     if (result_find) {
         if (result_find.familyCount >= 5)
-            return res.status(400).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
+            return res.status(400).json({ ok: false, message: "max" });
         return res.status(200).json({ ok: true });
     }
     else
-        return res.status(500).json({ ok: false, message: 'wrong approach' });
+        return res.status(500).json({ ok: false, message: 'wrong' });
 });
 
 router.post('/participate', upload.single("profile"), async (req, res) => { // (코드, 사용자이름, 구성역할, 이미지, 푸시토큰) (code, userName, role, profile, pushToken)

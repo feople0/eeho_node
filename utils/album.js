@@ -86,25 +86,23 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     const userIdMap = new Map();
     for (let i = 0; i < foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
     
-    console.log('result\n', result);
-    console.log('foundData\n', foundData);
     for (const res of result) {
         if ((res.senderId.toString()) === (loginStatus.id.toString())) {
             for (let i = 0; i < res.receiverId.length; i++) {
                 var index = userIdMap.get(res.receiverId[i].userId.toString());
-                if (index) (foundData[index].photo).push(res.img);
+                if (!isNaN(index)) {
+                    (foundData[index].photo).push({ _id: res._id, img: res.img, isMine: true });
+                }
             }
             continue;
         }
         var index = userIdMap.get(res.senderId.toString());
-        console.log('index2\n', index);
-        if (index) foundData[index].photo.push(res.img);
+        if (!isNaN(index)) {
+            foundData[index].photo.push({ _id: res._id, img: res.img, isMine: false });
+        }
     }
-    
-    // for (let i = 0; i < foundData.length; i++) foundData[i].photo.reverse();
 
     return res.status(200).json({ ok: true, data: foundData });
-
 });
 
 router.get('/:id', async (req, res) => {
@@ -114,9 +112,8 @@ router.get('/:id', async (req, res) => {
 
 router.get('/delete/:id', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    let result;
-    if (loginStatus.id)
-        result = await req.app.db.collection('EEHO').deleteOne({
+    if (loginStatus.id) return res.status(400).json({ ok: false, message: 'token is required' });
+    let result = await req.app.db.collection('EEHO').deleteOne({
             _id: parseInt(req.params.id), senderId: new ObjectId(loginStatus.id)
         });
 
