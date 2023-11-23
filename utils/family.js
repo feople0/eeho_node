@@ -38,11 +38,11 @@ router.post('/member/login', async (req, res) => { // (가족코드, 사용자�
         });
 
         if (req.body.pushToken) {
-            await req.app.db.collection('user').updateOne({ _id: result_find._id }, { $set: { pushToken: req.body.pushToken } });
+            await req.app.db.collection('user').updateOne({ _id: result_find._id }, {
+                $set: { pushToken: req.body.pushToken }
+            });
             await req.app.db.collection('family').updateOne({ code : req.body.code }, {
-                $set: {
-                    "user.$[elem].pushToken": req.body.pushToken
-                }
+                $set: { "user.$[elem].pushToken": req.body.pushToken }
             }, { arrayFilters: [{ "elem.userId": result_find._id }] });
         }
 
