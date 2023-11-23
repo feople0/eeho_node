@@ -66,7 +66,7 @@ router.post('/user/info', async (req, res) => { // body : userId
 
 });
 
-router.post('/account/update', upload.single('profileImg'), async (req, res) => { // userName, role, profileImg, familyName
+router.post('/account/update', upload.single('profileImg'), async (req, res) => { // userName, role, profileImg
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
     if (!loginStatus)
         return res.status(400).json({ ok: false, message: 'accessToken is required' });
@@ -74,6 +74,9 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
      
     try {
         let result_family = await req.app.db.collection('family').findOne({ _id: (result_find.familyId) });
+        let checkName = ((result_family.user).find(item => (item.userName.toString() === (req.body.userName).toString())));
+        if(checkName)
+            return res.status(500).json({ok:false, message:"duplicate"});
         
         let user = ((result_family.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
         let filePath = user.profileImg;

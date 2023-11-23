@@ -37,6 +37,9 @@ router.post('/member/login', async (req, res) => { // (가족코드, 사용자�
             familyId: result_family._id
         });
 
+        if(!result_find)
+            return res.status(400).json({ok:false, message:'cannot find user'});
+        
         if (req.body.pushToken) {
             await req.app.db.collection('user').updateOne({ _id: result_find._id }, {
                 $set: { pushToken: req.body.pushToken }
@@ -139,7 +142,10 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     
     if(result_find) {
         if (result_find.familyCount >= 5)
-            return res.status(400).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
+            return res.status(400).json({ ok: false, message: "max" });
+        let checkName = ((result_find.user).find(item => (item.userName.toString() === (req.body.userName).toString())));
+        if(checkName)
+            return res.status(500).json({ok:false, message:"duplicate"});
         let dateToday = new Date();
         let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);
