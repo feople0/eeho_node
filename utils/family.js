@@ -140,6 +140,9 @@ router.post('/participate', upload.single("profile"), async (req, res) => { // (
     if(result_find) {
         if (result_find.familyCount >= 5)
             return res.status(400).json({ ok: false, message: "한 가족 당 최대 사용자 수는 다섯명입니다." });
+        let checkName = ((result_find.user).find(item => (item.userName.toString() === (req.body.userName).toString())));
+        if(checkName)
+            return res.status(500).json({ok:false, message:'사용할 수 없는 이름'});
         let dateToday = new Date();
         let fileLocation = process.env.Domain_Link + '/image/basic-profile-img.png';
         if(req.file) fileLocation = (req.file.location);
