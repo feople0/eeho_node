@@ -33,7 +33,7 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 		}
 		foundData.splice(a, 1);
 	}
-	res.status(200).json({ ok : true, members: foundData, familyName: result_find.familyName });
+	return res.status(200).json({ ok : true, members: foundData, familyName: result_find.familyName });
 });
 
 // DB에 저장된 가족 코드를 내려주기.
@@ -44,7 +44,7 @@ router.get('/get/token', async (req, res) => { // 유저의 알림 내역 응답
 	let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
 	let result_family = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
 	
-	res.status(200).json({ ok: true, data: result_family.code });
+	return res.status(200).json({ ok: true, data: result_family.code });
     
 });
 

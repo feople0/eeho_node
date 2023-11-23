@@ -86,22 +86,17 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     const userIdMap = new Map();
     for (let i = 0; i < foundData.length; i++) userIdMap.set(foundData[i].userId.toString(), i);
     
-    console.log('result\n', result);
-    console.log('foundData\n', foundData);
     for (const res of result) {
         if ((res.senderId.toString()) === (loginStatus.id.toString())) {
             for (let i = 0; i < res.receiverId.length; i++) {
                 var index = userIdMap.get(res.receiverId[i].userId.toString());
-                if (index) (foundData[index].photo).push(res.img);
+                if (!isNaN(index)) (foundData[index].photo).push(res.img);
             }
             continue;
         }
         var index = userIdMap.get(res.senderId.toString());
-        console.log('index2\n', index);
-        if (index) foundData[index].photo.push(res.img);
+        if (!isNaN(index)) foundData[index].photo.push(res.img);
     }
-    
-    // for (let i = 0; i < foundData.length; i++) foundData[i].photo.reverse();
 
     return res.status(200).json({ ok: true, data: foundData });
 
