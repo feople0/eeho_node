@@ -136,11 +136,27 @@ router.get('/account/delete', async (req, res) => {
     }
 });
 
-// router.get('/logout', (req, res) => {
-//     // let date = ;
-//     console.log(new Date());
-//     res.status(200).json({ ok: true });
-// });
+router.get('/logout', async (req, res) => {
+    let loginStatus = req.app.TokenUtils.verify(req.headers.token);
+    if (!loginStatus)
+        return res.status(400).json({ ok: false, message: 'accessToken is required' });
+    let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
+    if (!result_user)
+        return res.status(500).json({ ok: false, message: 'cannot find user' });
+
+    try {
+        await req.app.db.collection('user').updateOne({ _id: new ObjectId(loginStatus.id) }, { $set: { pushToken: null } });
+        await req.app.db.collection('family').updateOne({ _id: result_user.familyId }, {
+            $set: {
+                "user.$[elem].pushToken": null
+            }
+        }, { arrayFilters: [{ "elem.userId": new ObjectId(loginStatus.id) }] });
+        return res.status(200).json({ ok: true });
+    } catch (error) {
+        return res.status(500).json({ ok: false });
+    }
+    
+});
 
 /** 현재 시간 구하기 위한 함수. */
 function WhatTimeNow() { 
