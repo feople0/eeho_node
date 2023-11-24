@@ -112,7 +112,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/delete/:id', async (req, res) => {
     let loginStatus = req.app.TokenUtils.verify(req.headers.token);
-    if (loginStatus.id) return res.status(400).json({ ok: false, message: 'token is required' });
+    if (!loginStatus.id) return res.status(400).json({ ok: false, message: 'token is required' });
     let result = await req.app.db.collection('EEHO').deleteOne({
             _id: parseInt(req.params.id), senderId: new ObjectId(loginStatus.id)
         });
