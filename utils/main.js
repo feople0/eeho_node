@@ -22,17 +22,13 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 	if (!result_find)
 		return res.status(400).json({ ok: false, message: 'cannot find family' });
 	
-	const foundData = result_find.user;
-	if (req.query.exceptMe) {
-		var a;
-		for(let i=0; i<foundData.length; i++) {
-			if ((foundData[i].userId).toString() === (loginStatus.id).toString()) {
-				a = i;
-				break;
-			}
-		}
-		foundData.splice(a, 1);
+	var foundData = result_find.user;
+	let newData = ((foundData).find(item => (item.userId.toString() === (loginStatus.id).toString())));
+	foundData = ((foundData).filter(item => (item.userId.toString() !== (loginStatus.id).toString())));
+	if (!req.query.exceptMe) { // 쿼리 데이터가 없으면 추가하고, 있으면 추가안하고. "true" "false" 
+		foundData.splice(0, 0, newData);
 	}
+	
 	return res.status(200).json({ ok : true, members: foundData, familyName: result_find.familyName });
 });
 
