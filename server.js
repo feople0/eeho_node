@@ -63,7 +63,9 @@ app.get('/image/:imageName', (req, res) => {
     res.redirect(s3ImageUrl);
 });
 
-
+app.get('/android/download', (req, res) => {
+    res.redirect('https://expo.dev/artifacts/eas/hM6xvfHbAyA34bi6Da1VG5.apk');
+});
 
 
 

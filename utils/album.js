@@ -26,12 +26,11 @@ const upload = multer({
             cb(null, dateString);
         },
         resize: {
-            width: 200,
-            withoutEnlargement: true
+            width: 600
         },
         max: true, // 비율 유지
         format: 'jpeg', // 변경할 이미지 포맷
-        quality: 50 // 이미지 품질
+        quality: 90 // 이미지 품질
     })
 });
   
@@ -53,6 +52,8 @@ router.get('/index/user', async (req, res) => { // header의 토큰으로 접근
     let result_user = await req.app.db.collection('user').findOne({ _id: new ObjectId(loginStatus.id) });
 
     // 2. user data 사용해서, family member 조회하기 // userId, role, userName, profileImg, pushToken -> token, name, role 지우고 photos:[] 추가.
+    if(!result_user)
+        return res.status(500).json({ ok: false, message: "cannot find user" });
     let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
     const foundData = result_find.user;
     
