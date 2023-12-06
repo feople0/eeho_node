@@ -13,7 +13,8 @@ app.use(cors({
     origin: [
         "https://eeho-web.vercel.app",
         "http://localhost:3000",
-        "http://172.16.231.51:3000"
+        "http://172.16.231.51:3000",
+        "http://192.168.45.232:3000"
     ], // 모든 출처 허용 옵션. true 를 써도 된다.
     methods: ["GET", "POST", "OPTIONS"]
 }));
