@@ -16,9 +16,9 @@ router.get('/members', async (req, res) => { // 유저의 가족 멤버 응답
 	if (!result_user)
 		return res.status(400).json({ ok: false, message: 'cannot find user' });
 
-	let result_find;
-	if (result_user.familyId)
-		result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
+	if (!result_user.familyId)
+		return res.status(400).json({ ok: false, message: 'cannot find user' });
+	let result_find = await req.app.db.collection('family').findOne({ _id: result_user.familyId });
 	if (!result_find)
 		return res.status(400).json({ ok: false, message: 'cannot find family' });
 	

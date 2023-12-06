@@ -101,6 +101,8 @@ router.post('/create', upload.single("profile"), async (req, res) => { // (ê°€ì¡
     try {
         await req.app.db.collection('user').updateOne({ userName: req.body.userName, signDate: dateToday }, { $set: { familyId: result_insert.insertedId } });
         
+        // var bin = parseInt((String(result_insert.insertedId)).slice(-10), 16);
+        // let familyCode = (String(bin)).slice(-10);
         let familyCode = (String(result_insert.insertedId)).slice(-8);
         await req.app.db.collection('family').updateOne({
             _id: result_insert.insertedId

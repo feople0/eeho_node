@@ -75,7 +75,8 @@ router.post('/account/update', upload.single('profileImg'), async (req, res) => 
     try {
         let result_family = await req.app.db.collection('family').findOne({ _id: (result_find.familyId) });
         let checkName = ((result_family.user).find(item => (item.userName.toString() === (req.body.userName).toString())));
-        if(checkName)
+        if(req.body.userName.toString() === result_find.userName.toString());
+        else if(checkName)
             return res.status(500).json({ok:false, message:"duplicate"});
         
         let user = ((result_family.user).find(item => (item.userId.toString() === (loginStatus.id).toString())));
